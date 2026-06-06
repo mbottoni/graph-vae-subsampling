@@ -33,6 +33,18 @@ and learned VGAE summaries arrive disentangled without explicit whitening.* The 
 embedding is demoted from "the method" to "one instance of the principle"; spec5_white
 is the practical recommendation (best in both conditions combined).
 
+### Type-I inflation resolved (D3c)
+
+vgae_sv's apparent anti-conservatism (0.08-0.10 across runs) was a **harness bug,
+not a statistic bug**: one base seed drove the data RNG, the VGAE training seeds
+(colliding with neighboring replicates' data seeds), and the permutation RNG.
+With SeedSequence-spawned independent streams: vgae_sv type-I = 0.050 exactly
+(lambda_max 0.03, spec5_white 0.03, Bonferroni-min combo 0.02 — conservative as
+expected). Action: all headline tables must come from the decoupled harness;
+d3_scaled (coupled seeds) is demoted to preliminary and rerun. Worth a methods
+paragraph — seed-coupled harnesses can manufacture mild miscalibration that looks
+exactly like a broken statistic.
+
 ### Next steps, in priority order
 
 1. ~~Kill-or-confirm~~ **DONE — see above.** Follow-up: position explicitly against
