@@ -82,6 +82,58 @@ def er_pair_series(
     return gs1, gs2, p1, p2
 
 
+def sbm_pair_series(
+    k: int,
+    n: int,
+    rho: float,
+    correlate: str = "both",
+    p_in_range: tuple[float, float] = (0.15, 0.35),
+    p_out_range: tuple[float, float] = (0.02, 0.10),
+    seed: int | None = None,
+) -> tuple[list[nx.Graph], list[nx.Graph]]:
+    """k pairs of 2-block SBMs with parameter-level dependence of strength rho.
+
+    The parameter is 2-dimensional, (p_in, p_out). `correlate` chooses where the
+    dependence lives:
+      "both"  — each parameter copied with probability rho (joint dependence)
+      "p_in"  — only p_in correlated; p_out independent
+      "p_out" — only p_out correlated; p_in independent
+
+    Rationale: for a 2-block SBM, lambda_1 ~ (n/2)(p_in + p_out) and
+    lambda_2 ~ (n/2)(p_in - p_out). A test using only the spectral radius sees
+    a 1-D projection of the parameter; with correlate="p_out" the dependence
+    signal is mostly orthogonal to that projection (p_out's range is small
+    relative to p_in's), so lambda_max should lose power while statistics that
+    retain lambda_2 should not.
+    """
+    rng = np.random.default_rng(seed)
+
+    def draw_pair(lo_hi: tuple[float, float], correlated: bool) -> tuple[np.ndarray, np.ndarray]:
+        a = rng.uniform(*lo_hi, size=k)
+        if correlated:
+            copy = rng.random(k) < rho
+            b = np.where(copy, a, rng.uniform(*lo_hi, size=k))
+        else:
+            b = rng.uniform(*lo_hi, size=k)
+        return a, b
+
+    if correlate not in ("both", "p_in", "p_out"):
+        raise ValueError(f"unknown correlate mode: {correlate}")
+    p_in1, p_in2 = draw_pair(p_in_range, correlate in ("both", "p_in"))
+    p_out1, p_out2 = draw_pair(p_out_range, correlate in ("both", "p_out"))
+
+    sizes = [n // 2, n - n // 2]
+    seeds = rng.integers(0, 2**31, size=2 * k)
+
+    def make(p_in: float, p_out: float, s: int) -> nx.Graph:
+        probs = [[p_in, p_out], [p_out, p_in]]
+        return nx.stochastic_block_model(sizes, probs, seed=int(s))
+
+    gs1 = [make(pi, po, s) for pi, po, s in zip(p_in1, p_out1, seeds[:k])]
+    gs2 = [make(pi, po, s) for pi, po, s in zip(p_in2, p_out2, seeds[k:])]
+    return gs1, gs2
+
+
 def to_pyg(g: nx.Graph) -> Data:
     """Convert to PyG Data with identity-matrix node features (featureless setting)."""
     data = from_networkx(g)
