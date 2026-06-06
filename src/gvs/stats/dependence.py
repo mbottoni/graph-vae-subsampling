@@ -61,6 +61,46 @@ def dcor_perm_test(
     return obs, (count + 1) / (n_perm + 1)
 
 
+def whiten(x: np.ndarray, eps: float = 1e-10) -> np.ndarray:
+    """ZCA-whiten a sample matrix (k x d): center, then rescale so the empirical
+    covariance is identity. Exposes low-variance directions that distance-based
+    statistics would otherwise ignore — the direct test of the 'geometry vs
+    information' mechanism for fixed spectra."""
+    xc = x - x.mean(axis=0, keepdims=True)
+    cov = np.cov(xc, rowvar=False)
+    cov = np.atleast_2d(cov)
+    w, v = np.linalg.eigh(cov)
+    w = np.maximum(w, eps)
+    return xc @ v @ np.diag(w**-0.5) @ v.T
+
+
+def _gaussian_gram(x: np.ndarray) -> np.ndarray:
+    d = _dist_matrix(x)
+    iu = np.triu_indices(d.shape[0], k=1)
+    sigma = np.median(d[iu])
+    if sigma <= 0:
+        sigma = 1.0
+    return np.exp(-(d**2) / (2 * sigma**2))
+
+
+def hsic_perm_test(
+    x: np.ndarray, y: np.ndarray, n_perm: int = 200, seed: int | None = None
+) -> tuple[float, float]:
+    """HSIC (Gaussian kernels, median-heuristic bandwidth) with permutation p-value."""
+    rng = np.random.default_rng(seed)
+    k = x.shape[0] if x.ndim > 1 else len(x)
+    h = np.eye(k) - np.full((k, k), 1.0 / k)
+    kc = h @ _gaussian_gram(x) @ h
+    lc = h @ _gaussian_gram(y) @ h
+    obs = float((kc * lc).mean())
+    count = 0
+    for _ in range(n_perm):
+        perm = rng.permutation(k)
+        if float((kc * lc[np.ix_(perm, perm)]).mean()) >= obs:
+            count += 1
+    return obs, (count + 1) / (n_perm + 1)
+
+
 def pearson_perm_test(
     x: np.ndarray, y: np.ndarray, n_perm: int = 200, seed: int | None = None
 ) -> tuple[float, float]:

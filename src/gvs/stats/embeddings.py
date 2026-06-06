@@ -46,6 +46,21 @@ def emb_features(g: nx.Graph) -> np.ndarray:
     ])
 
 
+def emb_full_spectrum(g: nx.Graph) -> np.ndarray:
+    """All n adjacency eigenvalues (descending) — the decisive fixed baseline."""
+    return adjacency_spectrum(g)
+
+
+def emb_netlsd(g: nx.Graph, n_t: int = 16) -> np.ndarray:
+    """NetLSD heat-trace signature (Tsitsulin et al. 2018), normalized by n:
+    h(t) = (1/n) sum_i exp(-t mu_i), mu_i eigenvalues of the normalized Laplacian."""
+    n = g.number_of_nodes()
+    lap = nx.normalized_laplacian_matrix(g).toarray()
+    mu = np.linalg.eigvalsh(lap)
+    ts = np.logspace(-2, 2, n_t)
+    return np.exp(-np.outer(ts, mu)).sum(axis=1) / n
+
+
 def emb_vgae_sv(
     g: nx.Graph,
     q: int = 5,
