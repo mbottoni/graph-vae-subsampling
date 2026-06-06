@@ -17,3 +17,13 @@ results/**/*.png
 
 # Notebooks
 .ipynb_checkpoints/
+
+# LaTeX build artifacts (keep main.pdf out too; built from source)
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.fls
+paper/*.fdb_latexmk
+paper/main.pdf

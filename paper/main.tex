@@ -1,0 +1,343 @@
+% First draft — embedding-based dependence testing between graph populations.
+% Build: pdflatex main && bibtex main && pdflatex main && pdflatex main
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage[round]{natbib}
+\usepackage{xcolor}
+
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\dCor}{\mathrm{dCor}}
+\newtheorem{remark}{Remark}
+
+\title{Graph Embeddings as Summary Statistics for Testing\\
+Dependence Between Graph Populations}
+
+\author{Maruan Ottoni Bakri\thanks{maruanbakriottoni@gmail.com. Code and full
+experimental logs: \url{https://github.com/mbottoni/graph-vae-subsampling}.}}
+
+\date{June 2026 --- working draft}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Measuring statistical dependence between sets of graphs is a central problem in
+domains such as brain-network analysis, where the main difficulty is mapping
+graph structure into vectors amenable to classical tests. The state-of-the-art
+approach correlates the spectral radii of paired graphs
+\citep{fujita2017correlation}. We propose replacing fixed spectral summaries
+with \emph{learned graph embeddings} --- specifically, the singular values of the
+latent node-embedding matrix of a variational graph autoencoder (VGAE), a
+rotation-invariant summary of the learned representation. On populations of
+paired stochastic block models whose dependence is confined to the
+between-block connection probability, the embedding-based test attains power
+$0.96$ at $\alpha = 0.05$ where the spectral-radius benchmark and a top-$5$
+eigenvalue test attain $0.24$, with all tests exactly calibrated under the
+null. Notably, the eigenvalue statistic \emph{contains} the dependence signal
+in closed form yet fails to detect it: test power depends not only on the
+information content of a summary statistic but on whether its geometry aligns
+dependence with nuisance variation. The learned embedding succeeds because it
+\emph{disentangles} the generative parameters into separate coordinates. We
+characterize the complementary regimes of spectral and learned summaries and
+outline a combined statistic. \todo{rerun headline at $R{=}100$; add
+full-spectrum and kernel baselines; real fMRI data}
+\end{abstract}
+
+\section{Introduction}
+
+Graphs are rich representations used across biology, neuroscience, and the
+social sciences. A recurring statistical task is to decide whether two
+\emph{populations} of graphs are dependent: given paired observations
+$\{(G^{(1)}_i, G^{(2)}_i)\}_{i=1}^{k}$ --- for instance, two brain networks
+recorded per subject --- test
+\[
+H_0: G^{(1)} \perp G^{(2)}
+\quad\text{vs.}\quad
+H_1: G^{(1)} \not\perp G^{(2)},
+\]
+where dependence is induced at the level of the generative process rather than
+through any vertex correspondence. The central obstacle is the translation of
+graph components (e.g.\ the adjacency matrix) into vectors of values on which a
+dependence test can operate.
+
+\citet{fujita2017correlation} proposed the state-of-the-art solution: map each
+graph to its spectral radius $\lambda_{\max}(A)$ --- a quantity that concentrates
+sharply around a function of the generative parameters for many random-graph
+models --- and test for correlation between the resulting paired scalar series.
+The spectral radius summarizes important structural properties such as cliques
+and walk counts, and the resulting test is simple, calibrated, and effective
+when the dependence signal is aligned with it.
+
+Meanwhile, the graph-embedding literature has produced flexible learned
+mappings from graphs into latent vector spaces that preserve structural
+properties \citep{cai2018survey, kipf2016variational}, optionally incorporating
+node and edge features. Despite their success in prediction tasks, learned
+embeddings have not been explored as \emph{summary statistics for dependence
+testing between graph populations}. This work fills that gap.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item We formulate embedding-based dependence testing for graph populations:
+        map each graph to a rotation-invariant summary of a learned embedding,
+        then apply a permutation distance-correlation test
+        (Section~\ref{sec:method}).
+  \item We show that all statistics considered --- the spectral-radius benchmark,
+        truncated spectra, structural features, and learned-embedding summaries
+        --- are exactly calibrated under permutation nulls
+        (Section~\ref{sec:calibration}).
+  \item On stochastic block model (SBM) populations whose dependence is
+        confined to the between-block density $p_{\mathrm{out}}$, the learned
+        summary attains power $0.96$ where every fixed spectral statistic
+        attains at most $0.24$ (Section~\ref{sec:sbm}).
+  \item We identify the mechanism: adjacency eigenvalues \emph{entangle} the SBM
+        parameters as $\lambda_{1,2} \approx \tfrac{n}{2}(p_{\mathrm{in}} \pm
+        p_{\mathrm{out}})$, so distance-based dependence measures on spectra are
+        dominated by independent nuisance variation in $p_{\mathrm{in}}$ ---
+        \emph{even though} the linear combination
+        $(\lambda_1 - \lambda_2)/2$ isolates the signal exactly. The VGAE latent
+        geometry disentangles the parameters (between-cluster separation tracks
+        $p_{\mathrm{out}}$; within-cluster spread tracks $p_{\mathrm{in}}$),
+        preserving the dependence direction as its own coordinate
+        (Section~\ref{sec:mechanism}).
+\end{enumerate}
+
+\section{Related Work}\label{sec:related}
+
+\paragraph{Dependence between graphs.} \citet{fujita2017correlation}
+introduced the spectral-radius correlation test for populations of paired
+graphs; it is our benchmark and defines our problem setting. A distinct line of
+work tests independence between two \emph{vertex-aligned} graphs observed once
+(e.g.\ dCorr-style tests on adjacency representations;
+\citealp{xiong2019graphindep}); our setting has no vertex alignment and
+operates on populations of pairs. Graph two-sample testing and graph-kernel
+MMD methods \citep{gretton2012kernel} compare distributions of graphs rather
+than testing dependence between paired populations, but supply natural
+baseline summaries. \todo{deeper positioning pass; verify the
+\citealp{xiong2019graphindep} reference details}
+
+\paragraph{Graph embeddings.} Survey: \citet{cai2018survey}. We build on the
+variational graph autoencoder \citep{kipf2016variational}. Spectral
+descriptors such as NetLSD \citep{tsitsulin2018netlsd} are fixed (non-learned)
+alternatives that we include in the planned baseline set.
+
+\section{Method}\label{sec:method}
+
+\subsection{Setting}
+
+For pair $i$, latent generative parameters $\theta_i^{(1)}, \theta_i^{(2)}$ are
+drawn from a joint distribution with marginals fixed and dependence controlled
+by $\rho \in [0, 1]$; graphs are then drawn independently given the parameters:
+$G_i^{(j)} \sim \mathbb{P}(\cdot \mid \theta_i^{(j)})$. Dependence lives
+entirely at the parameter level, which is what a summary statistic must expose.
+We use the \emph{shared-parameter construction}: $\theta_i^{(2)} =
+\theta_i^{(1)}$ with probability $\rho$, otherwise an independent draw. This
+keeps marginals exact and gives $\mathrm{corr}(\theta^{(1)}, \theta^{(2)}) =
+\rho$.
+
+\subsection{Summary statistics}
+
+Each graph $G$ is mapped to a vector $s(G) \in \mathbb{R}^q$:
+
+\begin{description}
+  \item[\texttt{lambda\_max} (benchmark).] $s(G) = \lambda_{\max}(A)$
+        \citep{fujita2017correlation}.
+  \item[\texttt{spectral}$q$.] Top-$q$ adjacency eigenvalues, descending
+        ($q = 5$ throughout).
+  \item[\texttt{features}.] Density, mean clustering, normalized degree mean
+        and standard deviation, and extreme eigenvalues.
+  \item[\texttt{vgae\_sv} (proposed).] Train a VGAE \citep{kipf2016variational}
+        on $G$ alone (two-layer GCN encoder, inner-product decoder, full-graph
+        reconstruction objective) to obtain the latent matrix $Z \in
+        \mathbb{R}^{n \times d}$; return the top-$q$ singular values of the
+        column-centered $Z$, scaled by $n^{-1/2}$.
+\end{description}
+
+\begin{remark}[Rotation invariance]\label{rem:rotation}
+Per-graph training makes the latent axes arbitrary: any orthogonal rotation of
+$Z$ achieves the same inner-product reconstruction. Raw latent coordinates are
+therefore not comparable across graphs. The singular values of $Z$ are
+invariant to this rotation and constitute the natural analogue of the
+adjacency spectrum --- making \texttt{vgae\_sv} vs.\ \texttt{spectral}$q$ a
+clean comparison between a \emph{learned} and a \emph{fixed} spectrum.
+\end{remark}
+
+\subsection{Test}
+
+Scalar summaries are tested with $|$Pearson $r$$|$; vector summaries with
+distance correlation \citep{szekely2007measuring}, which is invariant to
+orthogonal transformations of either space. All statistics use permutation
+null distributions ($B = 200$ permutations of the pairing), so every test is
+exact at the same level $\alpha = 0.05$ and power comparisons are like-for-like.
+
+\section{Experiments}\label{sec:experiments}
+
+Throughout: $k = 40$ pairs per replicate, $n = 60$ nodes per graph, $R$
+replicates per configuration, rejection rates at $\alpha = 0.05$. VGAE: hidden
+width 16, latent dimension 8, 60 epochs, Adam ($\mathrm{lr} = 0.01$).
+\todo{scale to $R = 100$, $n \in \{60, 100, 200\}$, $k \in \{20, 40, 80\}$}
+
+\subsection{Calibration and the one-parameter regime (ER)}\label{sec:calibration}
+
+Pairs of Erd\H{o}s--R\'enyi graphs with $p_i \sim U(0.1, 0.3)$ under the
+shared-parameter construction ($R = 20$).
+
+\begin{table}[ht]
+\centering
+\caption{Rejection rates, ER pairs. The $\rho = 0$ row is type-I error.}
+\label{tab:er}
+\begin{tabular}{lcccc}
+\toprule
+$\rho$ & \texttt{lambda\_max} & \texttt{spectral5} & \texttt{features} & \texttt{vgae\_sv} \\
+\midrule
+0.00 & 0.05 & 0.05 & 0.05 & 0.05 \\
+0.25 & 0.25 & 0.25 & 0.20 & 0.35 \\
+0.50 & 0.90 & 0.95 & 0.95 & 0.80 \\
+0.75 & 1.00 & 1.00 & 1.00 & 1.00 \\
+1.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All four tests are exactly calibrated (rejection $0.05$ at $\rho = 0$). Power
+is comparable across statistics: ER is the benchmark-friendliest setting, since
+a single parameter drives all structure and $\lambda_{\max} \approx np$ is
+nearly sufficient for it. Differences at low $\rho$ are within Monte-Carlo
+noise at $R = 20$.
+
+\subsection{Two-parameter dependence: the SBM blind spot}\label{sec:sbm}
+
+Pairs of two-block SBMs ($n = 60$, blocks of $30$) with
+$p_{\mathrm{in}, i} \sim U(0.15, 0.35)$ and
+$p_{\mathrm{out}, i} \sim U(0.02, 0.10)$. Two conditions ($R = 25$):
+\textbf{both} --- each parameter shared with probability $\rho$;
+\textbf{$p_{\mathrm{out}}$-only} --- only $p_{\mathrm{out}}$ correlated,
+$p_{\mathrm{in}}$ independent across the pair.
+
+\begin{table}[ht]
+\centering
+\caption{Rejection rates, SBM pairs. Left: dependence in both parameters.
+Right: dependence only in $p_{\mathrm{out}}$.}
+\label{tab:sbm}
+\begin{tabular}{lcccc@{\qquad}cccc}
+\toprule
+ & \multicolumn{4}{c}{both} & \multicolumn{4}{c}{$p_{\mathrm{out}}$-only} \\
+$\rho$ & $\lambda_{\max}$ & spec5 & feat & vgae & $\lambda_{\max}$ & spec5 & feat & vgae \\
+\midrule
+0.0 & 0.00 & 0.00 & 0.04 & 0.04 & 0.00 & 0.00 & 0.00 & 0.08 \\
+0.5 & 0.84 & 0.88 & 0.84 & 0.32 & 0.08 & 0.16 & 0.08 & 0.28 \\
+1.0 & 1.00 & 1.00 & 1.00 & 0.88 & 0.24 & 0.24 & 0.16 & \textbf{0.96} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In the $p_{\mathrm{out}}$-only condition at $\rho = 1$, the learned summary
+attains power $0.96$ while the benchmark and the truncated spectrum attain
+$0.24$ and structural features $0.16$. In the aligned (\textbf{both})
+condition the ordering reverses at intermediate $\rho$: fixed spectral
+statistics lead ($0.84$--$0.88$ vs.\ $0.32$ at $\rho = 0.5$). The regimes are
+complementary; neither statistic dominates. \todo{combined statistic
+spectral$\oplus$vgae; verify vgae\_sv type-I ($0.08$ at $R{=}25$) at $R{=}100$}
+
+\subsection{Mechanism: entanglement vs.\ disentanglement}\label{sec:mechanism}
+
+For a balanced two-block SBM the leading adjacency eigenvalues concentrate
+around
+\[
+\lambda_1 \approx \tfrac{n}{2}\left(p_{\mathrm{in}} + p_{\mathrm{out}}\right),
+\qquad
+\lambda_2 \approx \tfrac{n}{2}\left(p_{\mathrm{in}} - p_{\mathrm{out}}\right).
+\]
+The dependence signal in the $p_{\mathrm{out}}$-only condition is therefore
+\emph{available in closed form} from the spectrum, as
+$(\lambda_1 - \lambda_2)/2 \approx \tfrac{n}{2}\, p_{\mathrm{out}}$ --- yet
+\texttt{spectral5} fails ($0.24$). The explanation is geometric: distance
+correlation operates on inter-point distances, and in the spectral
+representation those distances are dominated by the independent
+$p_{\mathrm{in}}$ variation (range $0.20$) relative to the correlated
+$p_{\mathrm{out}}$ variation (range $0.08$), which enters both leading
+eigenvalues with equal magnitude. Information content is not sufficient for
+test power; the \emph{orientation} of the summary's coordinates relative to
+nuisance variation decides it.
+
+The VGAE latent geometry, by contrast, disentangles the parameters. The
+inner-product decoder places same-block nodes near one another and the two
+blocks at an angle determined by the cross-block connection probability:
+between-cluster separation tracks $p_{\mathrm{out}}$ while within-cluster
+spread tracks $p_{\mathrm{in}}$. These map to \emph{different} singular values
+of the centered latent matrix, so the correlated direction survives as its own
+coordinate rather than being buried in a nuisance-dominated sum.
+\todo{formalize as a lemma in expectation; empirical check: regress latent SVs
+on $(p_{\mathrm{in}}, p_{\mathrm{out}})$ to exhibit the disentanglement
+directly}
+
+\section{Limitations and Next Steps}\label{sec:limitations}
+
+\textbf{Scale.} All results are at $n = 60$, $k = 40$, $R \le 25$; the headline
+comparison needs $R = 100$ and sensitivity in $n$ and $k$.
+\textbf{Baselines.} The decisive missing baseline is dCor on the \emph{full}
+spectrum, plus kernel-MMD-style summaries and NetLSD; if the full spectrum
+recovers the $p_{\mathrm{out}}$ signal, the contribution narrows to compactness
+of learned summaries.
+\textbf{Real data.} A paired brain-network application (the benchmark's home
+domain) is required for the full claim.
+\textbf{Features.} The original program includes testing whether node features
+add power (phase two); untested here.
+\textbf{Theory.} The disentanglement mechanism is currently an empirical
+observation with a heuristic argument.
+
+\section*{Reproducibility}
+
+All experiments are scripted (\texttt{experiments/}) with fixed seeds and JSON
+result logs (\texttt{results/}) in the repository; the package
+(\texttt{src/gvs}) implements generators, summaries, and permutation tests.
+
+\bibliographystyle{plainnat}
+\begin{thebibliography}{9}
+
+\bibitem[Cai et~al.(2018)]{cai2018survey}
+H.~Cai, V.~W. Zheng, and K.~C.-C. Chang.
+\newblock A comprehensive survey of graph embedding: Problems, techniques, and
+  applications.
+\newblock \emph{IEEE Transactions on Knowledge and Data Engineering},
+  30(9):1616--1637, 2018.
+
+\bibitem[Fujita et~al.(2017)]{fujita2017correlation}
+A.~Fujita, D.~Y. Takahashi, J.~R. Balardin, M.~C. Vidal, and J.~R. Sato.
+\newblock Correlation between graphs with an application to brain network
+  analysis.
+\newblock \emph{Computational Statistics \& Data Analysis}, 109:76--92, 2017.
+
+\bibitem[Gretton et~al.(2012)]{gretton2012kernel}
+A.~Gretton, K.~M. Borgwardt, M.~J. Rasch, B.~Sch\"olkopf, and A.~Smola.
+\newblock A kernel two-sample test.
+\newblock \emph{Journal of Machine Learning Research}, 13:723--773, 2012.
+
+\bibitem[Kipf and Welling(2016)]{kipf2016variational}
+T.~N. Kipf and M.~Welling.
+\newblock Variational graph auto-encoders.
+\newblock \emph{NIPS Workshop on Bayesian Deep Learning}, 2016.
+
+\bibitem[Sz\'ekely et~al.(2007)]{szekely2007measuring}
+G.~J. Sz\'ekely, M.~L. Rizzo, and N.~K. Bakirov.
+\newblock Measuring and testing dependence by correlation of distances.
+\newblock \emph{The Annals of Statistics}, 35(6):2769--2794, 2007.
+
+\bibitem[Tsitsulin et~al.(2018)]{tsitsulin2018netlsd}
+A.~Tsitsulin, D.~Mottin, P.~Karras, A.~Bronstein, and E.~M\"uller.
+\newblock NetLSD: Hearing the shape of a graph.
+\newblock \emph{KDD}, 2018.
+
+\bibitem[Xiong et~al.(2019)]{xiong2019graphindep}
+J.~Xiong, C.~Shen, J.~Arroyo, and J.~T. Vogelstein.
+\newblock Graph independence testing.
+\newblock \emph{arXiv:1906.03661}, 2019.
+\newblock \todo{verify reference details and positioning}
+
+\end{thebibliography}
+
+\end{document}

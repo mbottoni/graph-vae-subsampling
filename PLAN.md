@@ -1,5 +1,55 @@
 # Project Plan
 
+## Status & next steps (June 2026)
+
+**Done:** E0–E4 (Thread 1) and D1–D3 + D2-SBM (Thread 2). See `results/*.json` and the
+README roadmap. Headline so far: on 2-block SBM pairs with dependence only in p_out,
+the VGAE-latent-SV statistic reaches power 0.96 where lambda_max (Fujita), top-5
+eigenvalues, and structural features reach 0.16–0.24 — with all tests exactly calibrated.
+Mechanism: latent singular values *disentangle* (p_in, p_out) into separate coordinates,
+while adjacency eigenvalues entangle them as sums/differences that dCor cannot separate
+under independent nuisance variation.
+
+**Publication target:** Thread 2 paper — "graph embeddings as summary statistics for
+testing dependence between graph populations." Thread 1 is supporting material (it
+produced the Bernoulli-decoding insight and the trained encoders) — not currently a
+standalone paper (classical baselines win at the scales tested; one modest win: BA@5%
+degree-shape variance).
+
+### Next steps, in priority order
+
+1. **Kill-or-confirm (cheapest, decides the paper).** Add stronger baselines to D2-SBM:
+   dCor on the FULL adjacency spectrum, dCor on scaled spectrum, HSIC, and (if cheap)
+   a graph-kernel MMD and NetLSD. If full-spectrum dCor also detects p_out dependence,
+   the headline shrinks to "learned summaries are more compact," which is a different
+   (weaker) paper. Run this BEFORE investing in anything else.
+2. **Scale the headline result.** R=100 replicates (tight CIs on the 0.96-vs-0.24 claim),
+   n in {60, 100, 200}, k in {20, 40, 80}, full rho grid, 3-block SBM, degree-corrected
+   SBM. Verify vgae_sv type-I (was 0.08 at R=25 — must settle to ~0.05).
+3. **Combined statistic.** spectral5 (+) vgae_sv concatenated (standardized per block).
+   The two fail in complementary regimes ("both": spectral 0.88 vs vgae 0.32 at rho=0.5;
+   "p_out": vgae 0.96 vs spectral 0.24). If the combination tracks the upper envelope,
+   the paper has a practical method, not just a diagnosis.
+4. **Positioning / related-work pass.** Differentiate explicitly from: Fujita et al.
+   (spectral-radius correlation — our benchmark), the JHU graph-independence-testing
+   line (vertex-aligned single-pair setting, dCorr on adjacency), graph two-sample
+   testing, and graph-kernel MMD literature. Our setting: population of graph *pairs*,
+   dependence at the generative-parameter level, no vertex alignment across pairs.
+5. **One real dataset.** Paired brain networks (fMRI, e.g. two parcellations/sessions
+   per subject) — the Fujita lineage's home domain. Needed for any non-workshop venue.
+6. **Theory section.** For the 2-block SBM, prove in expectation that the VGAE latent
+   geometry separates p_in (within-cluster spread) from p_out (centroid separation),
+   and that distances on raw spectra are dominated by the nuisance direction. Even a
+   lemma lifts the mechanism from observation to contribution.
+7. **D4 (node features).** Add informative node features to the embedding inputs and
+   test added power — phase 2 of the original abstract.
+8. **Thread 1 follow-ups (lower priority):** mean-degree-matched E4 rerun (the invariant
+   question), WS edge-dependent decoding, real-graph E4.
+
+**Venues:** workshop first (NeurIPS/ICML graph or stats-ML workshop) as forcing function;
+then AISTATS (with theory) or Network Science / Comput. Stat. & Data Analysis /
+Network Neuroscience (with the brain application leading).
+
 Two main research threads sharing one codebase (the VGAE and graph-statistics code is common to both), plus a side quest.
 
 ## Repository layout
