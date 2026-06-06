@@ -57,6 +57,31 @@ def correlated_er_pair(
     return build(a1), build(a2)
 
 
+def er_pair_series(
+    k: int,
+    n: int,
+    rho: float,
+    p_range: tuple[float, float] = (0.1, 0.3),
+    seed: int | None = None,
+) -> tuple[list[nx.Graph], list[nx.Graph], np.ndarray, np.ndarray]:
+    """k pairs of ER graphs whose *parameters* are dependent (Fujita's setting).
+
+    p1_i ~ U(p_range); with probability rho, p2_i = p1_i (shared parameter),
+    otherwise p2_i is an independent draw. Marginals are exactly U(p_range) and
+    corr(p1, p2) = rho. Given the parameters, graphs are independent — the
+    dependence lives entirely at the parameter level, which is what the
+    spectral/embedding statistics must detect.
+    """
+    rng = np.random.default_rng(seed)
+    p1 = rng.uniform(*p_range, size=k)
+    copy = rng.random(k) < rho
+    p2 = np.where(copy, p1, rng.uniform(*p_range, size=k))
+    seeds = rng.integers(0, 2**31, size=2 * k)
+    gs1 = [nx.erdos_renyi_graph(n, p, seed=int(s)) for p, s in zip(p1, seeds[:k])]
+    gs2 = [nx.erdos_renyi_graph(n, p, seed=int(s)) for p, s in zip(p2, seeds[k:])]
+    return gs1, gs2, p1, p2
+
+
 def to_pyg(g: nx.Graph) -> Data:
     """Convert to PyG Data with identity-matrix node features (featureless setting)."""
     data = from_networkx(g)
