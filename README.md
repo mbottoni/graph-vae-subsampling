@@ -80,11 +80,11 @@ Estimate random-graph model parameters with **variational inference**, comparing
       Formalized as the two-centroid Proposition in the paper (sv_1 = sqrt(n/2 (logit gap)))
 - [x] D3c: vgae_sv's apparent type-I inflation (0.10) was a HARNESS BUG (seed coupling), not
       the statistic — decoupled SeedSequence streams give exactly 0.050. Cautionary methods note
-- [x] D3-scaled (R=100, CIs): at p_out rho=1, spec5_white 0.96 [0.90,0.98] now STRICTLY beats
-      vgae_sv 0.82 [0.73,0.88] (disjoint CIs); benchmark collapses to 0.13-0.14. Whitened
-      spectrum is the practical winner; learned summary's value is purely mechanistic (Prop 1)
-- [~] D3d definitive (R=100, decoupled seeds) IN FLIGHT — supersedes D3-scaled for paper tables;
-      includes both combiners (concat vs Bonferroni min-p)
+- [x] D3d DEFINITIVE (R=100, decoupled seeds — the paper's headline table). p_out rho=1:
+      spec5_white 0.97 [0.92,0.99], concat 0.99, bonferroni_min 0.98, vgae_sv 0.89 [0.81,0.94];
+      benchmark 0.07, raw spec5 0.19. All type-I in [0.00,0.07]. No-free-lunch: whitening COSTS
+      in the aligned regime (0.65 vs raw 0.90 at both/rho=0.5). Bonferroni min-p is the most
+      robust single choice (best-of-all at the hardest cell, near-top in the blind spot)
 - [x] Positioned against affinely-invariant dCor (Dueck et al. 2014) and Xiong et al. 2019
       (vertex-aligned single-pair) in the paper's related work
 - [ ] Real data: paired brain networks (fMRI) — required for a non-workshop venue

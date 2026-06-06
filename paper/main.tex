@@ -36,19 +36,22 @@ spectral statistic we evaluate, including the full eigenvalue spectrum, NetLSD
 heat traces, and kernel (HSIC) variants --- fails in a simple and practically
 relevant regime: stochastic block model populations whose dependence is
 confined to the between-block connection probability $p_{\mathrm{out}}$
-(power $\le 0.36$ at $\alpha = 0.05$). The failure is \emph{geometric}, not
-informational: the spectrum contains the dependence signal in closed form
-($(\lambda_1 - \lambda_2)/2$ tracks $p_{\mathrm{out}}$ at $r = 0.89$), but
-distance-based dependence measures are dominated by independent nuisance
-variation in $p_{\mathrm{in}}$, which every leading eigenvalue loads on. Two
-statistics restore power to $0.96$: (i) a \emph{whitened} truncated spectrum
---- the sample analogue of affinely invariant distance correlation --- and
-(ii) the singular values of the latent node-embedding matrix of a per-graph
-variational graph autoencoder (VGAE), whose leading coordinate aligns with
-$p_{\mathrm{out}}$ \emph{without} explicit nuisance normalization. All tests
-are exactly calibrated under permutation nulls. The practical recommendation
-is the whitened spectrum; the learned summary demonstrates that
-representation geometry, not information content, decides test power.
+(power $\le 0.19$ at $\alpha = 0.05$, $R = 100$). The failure is
+\emph{geometric}, not informational: the spectrum contains the dependence
+signal in closed form ($(\lambda_1 - \lambda_2)/2$ tracks $p_{\mathrm{out}}$ at
+$r = 0.89$), but distance-based dependence measures are dominated by
+independent nuisance variation in $p_{\mathrm{in}}$, which every leading
+eigenvalue loads on. Two statistics restore power to $\approx 0.9$: (i) a
+\emph{whitened} truncated spectrum ($0.97$) --- the sample analogue of
+affinely invariant distance correlation --- and (ii) the singular values of
+the latent node-embedding matrix of a per-graph variational graph autoencoder
+(VGAE) ($0.89$), whose leading coordinate aligns with $p_{\mathrm{out}}$
+\emph{without} explicit nuisance normalization. The gain is not free: the same
+whitening costs power when dependence is spectrum-aligned, and a Bonferroni
+combiner is the most robust single choice across regimes. All tests are
+exactly calibrated under permutation nulls. The headline message is that
+representation geometry, not information content, decides test power for graph
+dependence.
 \todo{rerun at $R{=}100$; real fMRI data; combined statistic}
 \end{abstract}
 
@@ -96,9 +99,9 @@ testing between graph populations}. This work fills that gap.
         (Section~\ref{sec:calibration}).
   \item On stochastic block model (SBM) populations whose dependence is
         confined to the between-block density $p_{\mathrm{out}}$, the benchmark
-        and every \emph{raw} spectral statistic fail (power $0.24$--$0.36$),
-        including the full spectrum, NetLSD, and HSIC variants
-        (Section~\ref{sec:sbm}).
+        and every \emph{raw} spectral statistic fail (power $\le 0.19$ at
+        $R = 100$, $\le 0.36$ at $R = 25$), including the full spectrum,
+        NetLSD, and HSIC variants (Section~\ref{sec:sbm}).
   \item We identify the mechanism and verify it twice. Adjacency eigenvalues
         \emph{entangle} the SBM parameters as $\lambda_{1,2} \approx
         \tfrac{n}{2}(p_{\mathrm{in}} \pm p_{\mathrm{out}})$, so distance-based
@@ -107,15 +110,16 @@ testing between graph populations}. This work fills that gap.
         $(\lambda_1 - \lambda_2)/2$ isolates the signal exactly (measured:
         $r = 0.89$ with $p_{\mathrm{out}}$, $r = 0.15$ with $p_{\mathrm{in}}$).
         Confirmations: (i) \emph{whitening} the truncated spectrum --- a purely
-        geometric correction --- restores power from $0.24$ to $0.96$; (ii) the
+        geometric correction --- restores power from $0.19$ to $0.97$; (ii) the
         VGAE latent geometry disentangles the parameters (its leading singular
         value correlates $-0.61$ with $p_{\mathrm{out}}$ but only $0.19$ with
-        $p_{\mathrm{in}}$) and reaches the same $0.96$ without any explicit
-        correction (Section~\ref{sec:mechanism}).
-  \item Practical guidance: the whitened truncated spectrum is the best overall
-        statistic across aligned and misaligned dependence; learned summaries
-        are an alternative that self-disentangles but is weaker when dependence
-        is spectrum-aligned (Section~\ref{sec:sbm}).
+        $p_{\mathrm{in}}$) and reaches $0.89$ without any explicit correction
+        (Section~\ref{sec:mechanism}).
+  \item Practical guidance: there is no uniformly best statistic --- whitening
+        trades power in the aligned regime for power in the blind spot --- but a
+        Bonferroni $\min$-$p$ combiner of the whitened spectrum and the learned
+        summary is the most robust single choice across regimes
+        (Section~\ref{sec:sbm}).
 \end{enumerate}
 
 \section{Related Work}\label{sec:related}
@@ -251,43 +255,63 @@ noise at $R = 20$.
 
 Pairs of two-block SBMs ($n = 60$, blocks of $30$) with
 $p_{\mathrm{in}, i} \sim U(0.15, 0.35)$ and
-$p_{\mathrm{out}, i} \sim U(0.02, 0.10)$. Two conditions ($R = 25$):
+$p_{\mathrm{out}, i} \sim U(0.02, 0.10)$. Two conditions:
 \textbf{both} --- each parameter shared with probability $\rho$;
 \textbf{$p_{\mathrm{out}}$-only} --- only $p_{\mathrm{out}}$ correlated,
-$p_{\mathrm{in}}$ independent across the pair.
+$p_{\mathrm{in}}$ independent across the pair. Table~\ref{tab:sbm} reports the
+definitive run: $R = 100$ replicates per cell with the decoupled seeding of
+Section~\ref{sec:experiments}, $95\%$ Wilson intervals in brackets. We include
+two combiners of the whitened spectrum and the learned summary: their
+concatenation (\texttt{concat}) and the Bonferroni $\min$-$p$ test
+(\texttt{bonf}, reject if $2\min(p_{\mathrm{sw}}, p_{\mathrm{vgae}}) < \alpha$).
 
 \begin{table}[ht]
 \centering
-\caption{Rejection rates, SBM pairs. Left: dependence in both parameters.
-Right: dependence only in $p_{\mathrm{out}}$.}
+\small
+\caption{Rejection rates, SBM pairs, $R = 100$ ($95\%$ Wilson CI). Top:
+dependence in both parameters (spectrum-aligned). Bottom: dependence only in
+$p_{\mathrm{out}}$ (the blind spot). The $\rho = 0$ rows are type-I error: all
+calibrated. \texttt{sw} = whitened top-5 spectrum, \texttt{vg} = VGAE singular
+values, \texttt{bonf} = Bonferroni $\min$-$p$.}
 \label{tab:sbm}
-\begin{tabular}{lcccc@{\qquad}cccc}
+\begin{tabular}{llcccccc}
 \toprule
- & \multicolumn{4}{c}{both} & \multicolumn{4}{c}{$p_{\mathrm{out}}$-only} \\
-$\rho$ & $\lambda_{\max}$ & spec5 & feat & vgae & $\lambda_{\max}$ & spec5 & feat & vgae \\
+cond. & $\rho$ & $\lambda_{\max}$ & spec5 & sw & vg & concat & bonf \\
 \midrule
-0.0 & 0.00 & 0.00 & 0.04 & 0.04 & 0.00 & 0.00 & 0.00 & 0.08 \\
-0.5 & 0.84 & 0.88 & 0.84 & 0.32 & 0.08 & 0.16 & 0.08 & 0.28 \\
-1.0 & 1.00 & 1.00 & 1.00 & 0.88 & 0.24 & 0.24 & 0.16 & \textbf{0.96} \\
+both & 0.0 & .00 & .01 & .04 & .05 & .06 & .04 \\
+both & 0.5 & \textbf{.90} & .87 & .65 & .35 & .64 & .60 \\
+both & 1.0 & 1.0 & 1.0 & 1.0 & .92 & 1.0 & 1.0 \\
+\addlinespace
+$p_{\mathrm{out}}$ & 0.0 & .07 & .04 & .04 & .07 & .07 & .05 \\
+$p_{\mathrm{out}}$ & 0.5 & .06 & .07 & .18 & .30 & .21 & \textbf{.33} \\
+$p_{\mathrm{out}}$ & 1.0 & .07 & .19 & .97 & .89 & \textbf{.99} & .98 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-In the $p_{\mathrm{out}}$-only condition at $\rho = 1$, the learned summary
-attains power $0.96$ while the benchmark and the truncated spectrum attain
-$0.24$ and structural features $0.16$. In the aligned (\textbf{both})
-condition the ordering reverses at intermediate $\rho$: fixed spectral
-statistics lead ($0.84$--$0.88$ vs.\ $0.32$ at $\rho = 0.5$). The regimes are
-complementary; neither statistic dominates. \todo{combined statistic
-spectral$\oplus$vgae; verify vgae\_sv type-I ($0.08$ at $R{=}25$) at $R{=}100$}
+Three facts. (i) \emph{The benchmark has a blind spot:} in the
+$p_{\mathrm{out}}$-only condition the spectral radius never exceeds $0.07$ even
+at $\rho = 1$, and the raw top-5 spectrum reaches only $0.19$
+\mbox{[$0.13, 0.28$]} --- both indistinguishable from noise. (ii) \emph{Two
+statistics see it:} the whitened spectrum ($0.97$) and the learned summary
+($0.89$) both detect the dependence, with the whitened spectrum slightly ahead
+(overlapping CIs at $\rho = 1$, separated at $\rho = 0.5$). (iii) \emph{There
+is no free lunch:} the same whitening that rescues the blind spot \emph{costs}
+power when dependence is spectrum-aligned ($0.65$ vs.\ the raw $0.90$ at
+$\rho = 0.5$, \textbf{both}), and the learned summary costs more ($0.35$). The
+Bonferroni combiner is the most robust single choice --- best of all methods in
+the hardest cell ($0.33$ at $p_{\mathrm{out}}$, $\rho = 0.5$, beating both of
+its components) and near-top in the blind spot ($0.98$) --- at a moderate price
+in the aligned regime ($0.60$). All type-I rates ($\rho = 0$) lie in
+$[0.00, 0.07]$.
 
 \subsection{Stronger baselines: more information does not help; better geometry does}
 \label{sec:killorconfirm}
 
 Could the failure in Table~\ref{tab:sbm} be an artifact of truncating the
 spectrum at five eigenvalues, of using dCor rather than a kernel statistic, or
-of ignoring multi-scale structure? Table~\ref{tab:d2b} adds, under identical
-seeds and protocol: dCor on \emph{all} $n = 60$ eigenvalues
+of ignoring multi-scale structure? Table~\ref{tab:d2b} ($R = 25$) adds the
+baselines that rule these out: dCor on \emph{all} $n = 60$ eigenvalues
 (\texttt{full\_spec}), NetLSD heat-trace signatures \citep{tsitsulin2018netlsd}
 (\texttt{netlsd}), HSIC with Gaussian kernels and median-heuristic bandwidth
 (\texttt{hsic5}), and dCor on the ZCA-\emph{whitened} top-5 spectrum
@@ -297,11 +321,12 @@ explanation: whitening changes no information, only the metric.
 
 \begin{table}[ht]
 \centering
-\caption{Kill-or-confirm baselines, SBM pairs ($R = 25$, same seeds as
-Table~\ref{tab:sbm}). Adding information (\texttt{full\_spec}, \texttt{netlsd})
-or changing the dependence measure (\texttt{hsic5}) does not repair the
-$p_{\mathrm{out}}$-only failure; fixing the geometry (\texttt{spec5w}) does,
-matching the learned summary.}
+\caption{Kill-or-confirm baselines, SBM pairs ($R = 25$, identical seeds and
+protocol across columns). Adding information (\texttt{full\_spec},
+\texttt{netlsd}) or changing the dependence measure (\texttt{hsic5}) does not
+repair the $p_{\mathrm{out}}$-only failure; fixing the geometry
+(\texttt{spec5w}) does, matching the learned summary. The $R = 100$ figures for
+the overlapping columns appear in Table~\ref{tab:sbm}.}
 \label{tab:d2b}
 \begin{tabular}{llccccccc}
 \toprule
@@ -438,9 +463,9 @@ about the VGAE optimum}
 
 \section{Limitations and Next Steps}\label{sec:limitations}
 
-\textbf{Scale.} All results are at $n = 60$, $k = 40$, $R \le 25$; the headline
-comparisons need $R = 100$ and sensitivity in $n$ and $k$, and \texttt{vgae\_sv}'s
-type-I rate ($0.08$ at $R = 25$, within Monte-Carlo noise) must be confirmed.
+\textbf{Scale.} The headline (Table~\ref{tab:sbm}) is at $R = 100$ with
+calibrated type-I across all statistics, but a single graph size ($n = 60$) and
+population size ($k = 40$); sensitivity in $n$ and $k$ remains to be mapped.
 \textbf{Whitening stability.} ZCA whitening with $k = 40$ samples in $5$
 dimensions is benign; in higher-dimensional summaries the covariance estimate
 degrades and the learned summary's built-in orientation may become the more

@@ -45,12 +45,18 @@ d3_scaled (coupled seeds) is demoted to preliminary and rerun. Worth a methods
 paragraph — seed-coupled harnesses can manufacture mild miscalibration that looks
 exactly like a broken statistic.
 
+### Definitive headline (D3d, R=100, decoupled seeds)
+
+The paper's Table 2 is final. p_out blind spot at rho=1: spec5_white 0.97, concat 0.99,
+bonferroni_min 0.98, vgae_sv 0.89; benchmark 0.07, raw spectrum 0.19. All type-I calibrated.
+Settled the combiner question: **no uniformly best statistic** — whitening trades aligned-regime
+power (0.65 vs raw 0.90) for blind-spot power; Bonferroni min-p is the most robust single choice
+(best-of-all at the hardest cell p_out/rho=0.5 = 0.33, near-top in the blind spot = 0.98).
+
 ### Next steps, in priority order
 
-1. ~~Kill-or-confirm~~ **DONE — see above.** Follow-up: position explicitly against
-   affinely-invariant distance correlation (Dueck et al. 2014); our contribution is the
-   diagnosis of the spectral-radius benchmark and the graph-population application,
-   not the whitening idea itself.
+1. ~~Kill-or-confirm~~ ~~R=100 + combiner~~ **DONE.** Synthetic core is complete and written up.
+   Remaining blockers to a submission, in order:
 2. **Scale the headline result.** R=100 replicates (tight CIs on the 0.96-vs-0.24 claim),
    n in {60, 100, 200}, k in {20, 40, 80}, full rho grid, 3-block SBM, degree-corrected
    SBM. Verify vgae_sv type-I (was 0.08 at R=25 — must settle to ~0.05).
