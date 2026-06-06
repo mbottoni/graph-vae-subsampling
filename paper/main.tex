@@ -13,6 +13,7 @@
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
 \newcommand{\dCor}{\mathrm{dCor}}
 \newtheorem{remark}{Remark}
+\newtheorem{proposition}{Proposition}
 
 \title{Graph Embeddings as Summary Statistics for Testing\\
 Dependence Between Graph Populations}
@@ -375,8 +376,47 @@ directions by variance; in the learned representation the highest-variance
 direction \emph{is} the signal direction, while in the raw spectrum it is the
 nuisance. This explains all of Table~\ref{tab:d2b}: whitening equalizes the
 directions (rescuing the fixed spectrum), and the learned summary arrives with
-the right orientation built in. \todo{formalize as a lemma in expectation for
-the 2-block SBM}
+the right orientation built in.
+
+The following idealization makes the orientation claim precise.
+
+\begin{proposition}[Two-centroid latents]\label{prop:centroids}
+Consider a balanced two-block SBM with parameters $(p_{\mathrm{in}},
+p_{\mathrm{out}})$ and an idealized latent configuration in which block-$1$
+nodes sit at $+\mu \in \mathbb{R}^d$ and block-$2$ nodes at $-\mu$, plus
+isotropic within-cluster noise of scale $\sigma$, decoded by
+$\Pr(A_{ij} = 1) = \operatorname{sigmoid}(z_i^{\top} z_j + c)$ with a shared
+offset $c$. Matching expected within- and between-block densities gives
+\[
+\|\mu\|^2 \;=\; \tfrac{1}{2}\bigl(\operatorname{logit} p_{\mathrm{in}} -
+\operatorname{logit} p_{\mathrm{out}}\bigr),
+\qquad
+c \;=\; \tfrac{1}{2}\bigl(\operatorname{logit} p_{\mathrm{in}} +
+\operatorname{logit} p_{\mathrm{out}}\bigr),
+\]
+so the leading singular value of the centered latent matrix is
+$\mathrm{sv}_1 = \sqrt{n}\,\|\mu\| =
+\sqrt{\tfrac{n}{2}\bigl(\operatorname{logit} p_{\mathrm{in}} -
+\operatorname{logit} p_{\mathrm{out}}\bigr)}$, while the remaining singular
+values are $O(\sigma\sqrt{n})$, carrying no direct dependence on the logit
+gap. Since $\partial \operatorname{logit}(p) / \partial p = 1/\bigl(p(1 -
+p)\bigr)$ is $\approx 3.3\times$ larger at the midpoint of the experimental
+$p_{\mathrm{out}}$ range ($0.06$) than of the $p_{\mathrm{in}}$ range
+($0.25$), $\mathrm{sv}_1$ is dominated by $p_{\mathrm{out}}$.
+\end{proposition}
+
+The idealization is consistent with measurement: over $120$ independent SBMs,
+$\mathrm{sv}_1$ correlates $0.645$ with the logit gap ($R^2 = 0.42$), and
+after regressing the gap out, the residual correlations with
+$p_{\mathrm{in}}$ and $p_{\mathrm{out}}$ collapse to $-0.18$ and $-0.10$ ---
+i.e.\ essentially all of $\mathrm{sv}_1$'s parameter dependence flows through
+the predicted quantity. (The trailing singular values' empirical
+$p_{\mathrm{in}}$ loading, Table~\ref{tab:mech}, corresponds to the noise
+scale $\sigma$ tracking within-block density --- outside the idealization but
+harmless to it: those coordinates carry nuisance, which dCor down-weights only
+if, as here, their variance is smaller.) \todo{tighten the proposition's
+noise model; current form is a matched-moments idealization, not a statement
+about the VGAE optimum}
 
 \section{Limitations and Next Steps}\label{sec:limitations}
 
