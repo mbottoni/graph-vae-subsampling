@@ -134,6 +134,59 @@ def sbm_pair_series(
     return gs1, gs2
 
 
+def dc_sbm_pair_series(
+    k: int,
+    n: int,
+    rho: float,
+    n_blocks: int = 2,
+    degree_hetero: float = 0.0,
+    p_in_range: tuple[float, float] = (0.15, 0.35),
+    p_out_range: tuple[float, float] = (0.02, 0.10),
+    seed: int | None = None,
+) -> tuple[list[nx.Graph], list[nx.Graph]]:
+    """k pairs of (degree-corrected) SBMs with dependence only in p_out.
+
+    Generalizes sbm_pair_series toward realistic connectomes along two axes:
+      n_blocks      — number of equal-size communities (2 -> multi-community)
+      degree_hetero — per-node degree multipliers theta_i ~ LogNormal(0, s),
+                      s = degree_hetero (0 recovers the plain SBM). Edge
+                      probability is clip(theta_i theta_j B_{c_i c_j}, 0, 1).
+
+    theta is drawn fresh per graph: degree heterogeneity is a within-graph
+    nuisance, present in both members of a pair but uncorrelated across them, so
+    the only dependence is still p_out. This is the adversarial setting for the
+    benchmark — extra nuisance variance with no extra signal.
+    """
+    rng = np.random.default_rng(seed)
+    p_in1 = rng.uniform(*p_in_range, size=k)
+    p_in2 = rng.uniform(*p_in_range, size=k)  # p_in independent across the pair
+    copy = rng.random(k) < rho
+    p_out1 = rng.uniform(*p_out_range, size=k)
+    p_out2 = np.where(copy, p_out1, rng.uniform(*p_out_range, size=k))
+
+    base = n // n_blocks
+    sizes = [base] * (n_blocks - 1) + [n - base * (n_blocks - 1)]
+    blocks = np.concatenate([[b] * s for b, s in enumerate(sizes)])
+
+    def make(p_in: float, p_out: float, s: int) -> nx.Graph:
+        rr = np.random.default_rng(s)
+        theta = (rr.lognormal(0.0, degree_hetero, size=n)
+                 if degree_hetero > 0 else np.ones(n))
+        bmat = np.full((n_blocks, n_blocks), p_out)
+        np.fill_diagonal(bmat, p_in)
+        prob = theta[:, None] * theta[None, :] * bmat[np.ix_(blocks, blocks)]
+        iu = np.triu_indices(n, k=1)
+        draw = rr.random(len(iu[0])) < np.clip(prob[iu], 0.0, 1.0)
+        g = nx.empty_graph(n)
+        g.add_edges_from(zip(iu[0][draw], iu[1][draw]))
+        return g
+
+    seeds = rng.integers(0, 2**31, size=2 * k)
+    gs1 = [make(pi, po, int(s)) for pi, po, s in zip(p_in1, p_out1, seeds[:k])]
+    gs2 = [make(pi, po, int(s)) for pi, po, s in zip(p_in2, p_out2, seeds[k:])]
+    return gs1, gs2
+
+
 def to_pyg(g: nx.Graph) -> Data:
     """Convert to PyG Data with identity-matrix node features (featureless setting)."""
     data = from_networkx(g)
