@@ -1,0 +1,39 @@
+{
+  "experiment": "e0_vgae_er",
+  "config": {
+    "n": 100,
+    "p": 0.1,
+    "seed": 0,
+    "epochs": 300
+  },
+  "link_prediction": {
+    "auc": 0.45866974240676667,
+    "ap": 0.5002061880266095
+  },
+  "final_loss": 1.3279407024383545,
+  "summary_original": {
+    "n_nodes": 100,
+    "n_edges": 511,
+    "density": 0.10323232323232323,
+    "mean_degree": 10.22,
+    "clustering": 0.09774535663854549,
+    "assortativity": 0.014545842096028197,
+    "n_triangles": 172,
+    "lambda_max": 11.131643081891056
+  },
+  "summary_reconstructed": {
+    "n_nodes": 100,
+    "n_edges": 511,
+    "density": 0.10323232323232323,
+    "mean_degree": 10.22,
+    "clustering": 0.5345749346466738,
+    "assortativity": 0.08971246102685847,
+    "n_triangles": 1286,
+    "lambda_max": 16.264375024903856
+  },
+  "degree_ks": {
+    "statistic": 0.26,
+    "pvalue": 0.002219935934558366
+  },
+  "degree_wasserstein_norm": 0.03737373737373738
+}
