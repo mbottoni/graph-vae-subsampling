@@ -44,10 +44,12 @@ Estimate random-graph model parameters with **variational inference**, comparing
 
 ## Roadmap
 
-- [ ] Understand the GraphVAE / VGAE model
+- [x] Understand the GraphVAE / VGAE model (M0 implemented in `src/gvs/models/vgae.py`)
 - [ ] Review image downsampling with VAEs (as an analogy/starting point)
-- [ ] Train a standard VGAE and use intermediate decoder layers for downsampling
-- [ ] Erdős–Rényi sanity-check experiment (n = 100): sample and compare distributions
+- [x] Train a standard VGAE and use latent subsampling for downsampling (E0/E1, `results/`)
+- [x] Erdős–Rényi sanity-check experiment (n = 100): sample and compare distributions (E1)
+- [x] Structured families BA/WS/SBM downsampling comparison (E2)
+- [ ] Fix the inner-product decoder over-clustering bias (main finding of E1/E2 — see `results/`)
 - [ ] Embeddings vs. eigenvalues: correlation analysis between embedding space and eigenvalue spectrum
 - [ ] Bootstrap evaluation of the embedding-based dependence test (incl. uncorrelated graphs)
 - [ ] VI vs. MCMC vs. MLE for random-graph parameter estimation
