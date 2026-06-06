@@ -61,7 +61,12 @@ Estimate random-graph model parameters with **variational inference**, comparing
       (mean degree collapses, graphs fragment, modularity becomes meaningless). Decide what
       downsampling should preserve: density p vs mean degree / degree shape
 - [ ] Embeddings vs. eigenvalues: correlation analysis between embedding space and eigenvalue spectrum
-- [ ] Bootstrap evaluation of the embedding-based dependence test (incl. uncorrelated graphs)
+- [x] D1-D3 on ER pairs (k=40, n=60, R=20): all four statistics have exact type-I error (0.05)
+      and saturate power by rho=0.75. Hints (within noise at R=20): vgae_sv best at rho=0.25
+      (0.35 vs benchmark 0.25), spectral5/features best at rho=0.5 (0.95 vs 0.90)
+- [ ] D2 on SBM pairs — the setting where lambda_max should genuinely lose: dependence in
+      (p_in, p_out) is 2-dimensional, and the spectral radius compresses it to 1D
+- [ ] Re-run D1 with R>=100 to separate the statistics at low rho (current differences within noise)
 - [ ] VI vs. MCMC vs. MLE for random-graph parameter estimation
 
 ## Literature
