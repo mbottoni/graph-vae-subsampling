@@ -64,8 +64,15 @@ Estimate random-graph model parameters with **variational inference**, comparing
 - [x] D1-D3 on ER pairs (k=40, n=60, R=20): all four statistics have exact type-I error (0.05)
       and saturate power by rho=0.75. Hints (within noise at R=20): vgae_sv best at rho=0.25
       (0.35 vs benchmark 0.25), spectral5/features best at rho=0.5 (0.95 vs 0.90)
-- [ ] D2 on SBM pairs — the setting where lambda_max should genuinely lose: dependence in
-      (p_in, p_out) is 2-dimensional, and the spectral radius compresses it to 1D
+- [x] D2 on SBM pairs — headline Thread-2 result: with dependence only in p_out (rho=1),
+      the learned embedding detects what every spectral statistic misses
+      (vgae_sv power 0.96 vs lambda_max 0.24, spectral5 0.24, features 0.16).
+      Surprise: spectral5 fails too, despite (lambda_1 - lambda_2)/2 isolating p_out exactly —
+      information content is not enough; dCor's distance geometry is dominated by independent
+      p_in noise. The VGAE latent SVs *disentangle* (p_in, p_out) into separate components
+      (centroid separation tracks p_out; within-cluster tightness tracks p_in)
+- [ ] Complementarity: vgae_sv is weaker in the aligned condition (0.32 vs 0.88 at rho=0.5
+      "both") — test a combined statistic (spectral5 ++ vgae_sv)
 - [ ] Re-run D1 with R>=100 to separate the statistics at low rho (current differences within noise)
 - [ ] VI vs. MCMC vs. MLE for random-graph parameter estimation
 
