@@ -54,6 +54,12 @@ Estimate random-graph model parameters with **variational inference**, comparing
       degree-corrected + Bernoulli is best on BA. WS (genuine transitivity) still under-clusters.
 - [ ] WS gap: edge-dependent decoding (the independence assumption given Z can't produce
       lattice-like transitivity)
+- [x] E4 scale-up (n=1000, 5-10% samples): latent methods match uniform node everywhere and
+      beat it on BA degree shape at 5% (W1 0.0072±0.0001 vs 0.0093±0.0024 — 20x lower variance:
+      uniform sampling's hub lottery vs the latent posterior's smooth degree summary)
+- [ ] Open question from E4: density matching is the wrong invariant at small sample fractions
+      (mean degree collapses, graphs fragment, modularity becomes meaningless). Decide what
+      downsampling should preserve: density p vs mean degree / degree shape
 - [ ] Embeddings vs. eigenvalues: correlation analysis between embedding space and eigenvalue spectrum
 - [ ] Bootstrap evaluation of the embedding-based dependence test (incl. uncorrelated graphs)
 - [ ] VI vs. MCMC vs. MLE for random-graph parameter estimation
