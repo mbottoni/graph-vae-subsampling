@@ -123,14 +123,16 @@ testing between graph populations}. This work fills that gap.
 \paragraph{Dependence between graphs.} \citet{fujita2017correlation}
 introduced the spectral-radius correlation test for populations of paired
 graphs; it is our benchmark and defines our problem setting. A distinct line of
-work tests independence between two \emph{vertex-aligned} graphs observed once
-(e.g.\ dCorr-style tests on adjacency representations;
-\citealp{xiong2019graphindep}); our setting has no vertex alignment and
-operates on populations of pairs. Graph two-sample testing and graph-kernel
-MMD methods \citep{gretton2012kernel} compare distributions of graphs rather
-than testing dependence between paired populations, but supply natural
-baseline summaries. \todo{deeper positioning pass; verify the
-\citealp{xiong2019graphindep} reference details}
+work tests independence between two \emph{vertex-aligned} graphs observed
+once: \citet{xiong2019graphindep} study a single pair of $n \times n$
+adjacency matrices under a $\rho$-correlated SBM, show that na\"ive
+permutation tests are invalid there, and propose block-permutation nulls. Our
+setting differs on both axes --- a population of $k$ paired graphs with no
+vertex alignment, dependence induced at the generative-parameter level ---
+which is why plain permutation of the pairing is exact here. Graph two-sample
+testing and graph-kernel MMD methods \citep{gretton2012kernel} compare
+distributions of graphs rather than testing dependence between paired
+populations, but supply natural baseline summaries.
 
 \paragraph{Graph embeddings.} Survey: \citet{cai2018survey}. We build on the
 variational graph autoencoder \citep{kipf2016variational}. Spectral
@@ -199,7 +201,23 @@ exact at the same level $\alpha = 0.05$ and power comparisons are like-for-like.
 Throughout: $k = 40$ pairs per replicate, $n = 60$ nodes per graph, $R$
 replicates per configuration, rejection rates at $\alpha = 0.05$. VGAE: hidden
 width 16, latent dimension 8, 60 epochs, Adam ($\mathrm{lr} = 0.01$).
-\todo{scale to $R = 100$, $n \in \{60, 100, 200\}$, $k \in \{20, 40, 80\}$}
+\todo{replace $R \le 25$ tables with the definitive $R = 100$ run (in flight);
+sensitivity in $n \in \{60, 100, 200\}$, $k \in \{20, 40, 80\}$}
+
+\paragraph{A cautionary note on simulation harnesses.}
+An early version of our harness derived all randomness in a replicate --- the
+data-generating RNG, the per-graph VGAE training seeds, and the permutation
+RNG --- from a single base seed, with consecutive replicates using consecutive
+seeds. This coupling produced an apparent type-I rate of $0.10$
+\mbox{[$0.06, 0.17$]} for the learned statistic at $R = 100$, indistinguishable
+from a defect in the statistic itself. Re-running the pure-null cell with three
+mutually independent \texttt{SeedSequence}-spawned streams restored exactness:
+type-I $0.050$ for the learned statistic ($0.030$ for the benchmark and the
+whitened spectrum, $0.020$ for the Bonferroni combination --- conservative, as
+expected). All headline tables use the decoupled harness. Permutation tests
+are exact only when the permutation randomness is independent of the data;
+simulation code can silently violate this assumption at the harness level
+while every individual component is correct.
 
 \subsection{Calibration and the one-parameter regime (ER)}\label{sec:calibration}
 
@@ -483,9 +501,9 @@ A.~Tsitsulin, D.~Mottin, P.~Karras, A.~Bronstein, and E.~M\"uller.
 
 \bibitem[Xiong et~al.(2019)]{xiong2019graphindep}
 J.~Xiong, C.~Shen, J.~Arroyo, and J.~T. Vogelstein.
-\newblock Graph independence testing.
+\newblock Community correlations and testing independence between binary
+  graphs.
 \newblock \emph{arXiv:1906.03661}, 2019.
-\newblock \todo{verify reference details and positioning}
 
 \end{thebibliography}
 
