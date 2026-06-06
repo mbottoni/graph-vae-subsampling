@@ -71,8 +71,17 @@ Estimate random-graph model parameters with **variational inference**, comparing
       information content is not enough; dCor's distance geometry is dominated by independent
       p_in noise. The VGAE latent SVs *disentangle* (p_in, p_out) into separate components
       (centroid separation tracks p_out; within-cluster tightness tracks p_in)
-- [ ] Complementarity: vgae_sv is weaker in the aligned condition (0.32 vs 0.88 at rho=0.5
-      "both") — test a combined statistic (spectral5 ++ vgae_sv)
+- [x] Kill-or-confirm (D2b): whitening RESCUES the fixed spectrum — spec5_white 0.96 = vgae_sv
+      0.96 in the p_out condition, while full spectrum (0.36), NetLSD (0.32), HSIC (0.28) stay
+      weak. Mechanism confirmed (the failure is geometric, a linear fix suffices); method claim
+      demoted (learned embeddings are *one* way to disentangle, whitening is the cheaper way).
+      spec5_white is the best overall statistic (0.76 in "both" at rho=0.5 vs vgae_sv 0.24)
+- [x] Mechanism exhibited directly (m1): all adjacency eigenvalues p_in-dominated (0.63-0.92),
+      (lambda1-lambda2)/2 isolates p_out (corr 0.894), vgae sv_1 IS the p_out coordinate (-0.61)
+- [ ] Position against affinely-invariant distance correlation (Dueck et al. 2014) — whitened
+      dCor is its sample version; the novelty is the application to graph-population testing
+      and the diagnosis of the Fujita benchmark
+- [ ] Complementarity: test a combined statistic (spec5_white ++ vgae_sv)
 - [ ] Re-run D1 with R>=100 to separate the statistics at low rho (current differences within noise)
 - [ ] VI vs. MCMC vs. MLE for random-graph parameter estimation
 

@@ -16,13 +16,29 @@ produced the Bernoulli-decoding insight and the trained encoders) — not curren
 standalone paper (classical baselines win at the scales tested; one modest win: BA@5%
 degree-shape variance).
 
+### Kill-or-confirm outcome (D2b, June 2026) — paper reframed
+
+The pre-registered prediction held exactly: **whitening rescues the fixed spectrum**
+(spec5_white 0.96 = vgae_sv 0.96 in the p_out condition) while more information does not
+(full spectrum 0.36, NetLSD 0.32, HSIC 0.28). And m1 exhibits the mechanism directly
+(all eigenvalues p_in-dominated; (l1-l2)/2 isolates p_out at corr 0.894; vgae sv_1 is
+the p_out coordinate at -0.61).
+
+Revised paper story (more modest, more precise, better supported):
+*Test power for graph-population dependence is decided by the geometry of the summary
+statistic, not its information content. The Fujita benchmark and every raw spectral
+statistic fail when dependence is orthogonal to dominant nuisance variation; a whitened
+truncated spectrum (= affinely-invariant dCor, cf. Dueck et al. 2014) fixes it cheaply,
+and learned VGAE summaries arrive disentangled without explicit whitening.* The learned
+embedding is demoted from "the method" to "one instance of the principle"; spec5_white
+is the practical recommendation (best in both conditions combined).
+
 ### Next steps, in priority order
 
-1. **Kill-or-confirm (cheapest, decides the paper).** Add stronger baselines to D2-SBM:
-   dCor on the FULL adjacency spectrum, dCor on scaled spectrum, HSIC, and (if cheap)
-   a graph-kernel MMD and NetLSD. If full-spectrum dCor also detects p_out dependence,
-   the headline shrinks to "learned summaries are more compact," which is a different
-   (weaker) paper. Run this BEFORE investing in anything else.
+1. ~~Kill-or-confirm~~ **DONE — see above.** Follow-up: position explicitly against
+   affinely-invariant distance correlation (Dueck et al. 2014); our contribution is the
+   diagnosis of the spectral-radius benchmark and the graph-population application,
+   not the whitening idea itself.
 2. **Scale the headline result.** R=100 replicates (tight CIs on the 0.96-vs-0.24 claim),
    n in {60, 100, 200}, k in {20, 40, 80}, full rho grid, 3-block SBM, degree-corrected
    SBM. Verify vgae_sv type-I (was 0.08 at R=25 — must settle to ~0.05).

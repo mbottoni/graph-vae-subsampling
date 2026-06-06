@@ -30,22 +30,25 @@ Measuring statistical dependence between sets of graphs is a central problem in
 domains such as brain-network analysis, where the main difficulty is mapping
 graph structure into vectors amenable to classical tests. The state-of-the-art
 approach correlates the spectral radii of paired graphs
-\citep{fujita2017correlation}. We propose replacing fixed spectral summaries
-with \emph{learned graph embeddings} --- specifically, the singular values of the
-latent node-embedding matrix of a variational graph autoencoder (VGAE), a
-rotation-invariant summary of the learned representation. On populations of
-paired stochastic block models whose dependence is confined to the
-between-block connection probability, the embedding-based test attains power
-$0.96$ at $\alpha = 0.05$ where the spectral-radius benchmark and a top-$5$
-eigenvalue test attain $0.24$, with all tests exactly calibrated under the
-null. Notably, the eigenvalue statistic \emph{contains} the dependence signal
-in closed form yet fails to detect it: test power depends not only on the
-information content of a summary statistic but on whether its geometry aligns
-dependence with nuisance variation. The learned embedding succeeds because it
-\emph{disentangles} the generative parameters into separate coordinates. We
-characterize the complementary regimes of spectral and learned summaries and
-outline a combined statistic. \todo{rerun headline at $R{=}100$; add
-full-spectrum and kernel baselines; real fMRI data}
+\citep{fujita2017correlation}. We show that this test --- and every \emph{raw}
+spectral statistic we evaluate, including the full eigenvalue spectrum, NetLSD
+heat traces, and kernel (HSIC) variants --- fails in a simple and practically
+relevant regime: stochastic block model populations whose dependence is
+confined to the between-block connection probability $p_{\mathrm{out}}$
+(power $\le 0.36$ at $\alpha = 0.05$). The failure is \emph{geometric}, not
+informational: the spectrum contains the dependence signal in closed form
+($(\lambda_1 - \lambda_2)/2$ tracks $p_{\mathrm{out}}$ at $r = 0.89$), but
+distance-based dependence measures are dominated by independent nuisance
+variation in $p_{\mathrm{in}}$, which every leading eigenvalue loads on. Two
+statistics restore power to $0.96$: (i) a \emph{whitened} truncated spectrum
+--- the sample analogue of affinely invariant distance correlation --- and
+(ii) the singular values of the latent node-embedding matrix of a per-graph
+variational graph autoencoder (VGAE), whose leading coordinate aligns with
+$p_{\mathrm{out}}$ \emph{without} explicit nuisance normalization. All tests
+are exactly calibrated under permutation nulls. The practical recommendation
+is the whitened spectrum; the learned summary demonstrates that
+representation geometry, not information content, decides test power.
+\todo{rerun at $R{=}100$; real fMRI data; combined statistic}
 \end{abstract}
 
 \section{Introduction}
@@ -91,19 +94,27 @@ testing between graph populations}. This work fills that gap.
         --- are exactly calibrated under permutation nulls
         (Section~\ref{sec:calibration}).
   \item On stochastic block model (SBM) populations whose dependence is
-        confined to the between-block density $p_{\mathrm{out}}$, the learned
-        summary attains power $0.96$ where every fixed spectral statistic
-        attains at most $0.24$ (Section~\ref{sec:sbm}).
-  \item We identify the mechanism: adjacency eigenvalues \emph{entangle} the SBM
-        parameters as $\lambda_{1,2} \approx \tfrac{n}{2}(p_{\mathrm{in}} \pm
-        p_{\mathrm{out}})$, so distance-based dependence measures on spectra are
-        dominated by independent nuisance variation in $p_{\mathrm{in}}$ ---
-        \emph{even though} the linear combination
-        $(\lambda_1 - \lambda_2)/2$ isolates the signal exactly. The VGAE latent
-        geometry disentangles the parameters (between-cluster separation tracks
-        $p_{\mathrm{out}}$; within-cluster spread tracks $p_{\mathrm{in}}$),
-        preserving the dependence direction as its own coordinate
-        (Section~\ref{sec:mechanism}).
+        confined to the between-block density $p_{\mathrm{out}}$, the benchmark
+        and every \emph{raw} spectral statistic fail (power $0.24$--$0.36$),
+        including the full spectrum, NetLSD, and HSIC variants
+        (Section~\ref{sec:sbm}).
+  \item We identify the mechanism and verify it twice. Adjacency eigenvalues
+        \emph{entangle} the SBM parameters as $\lambda_{1,2} \approx
+        \tfrac{n}{2}(p_{\mathrm{in}} \pm p_{\mathrm{out}})$, so distance-based
+        dependence measures on spectra are dominated by independent nuisance
+        variation in $p_{\mathrm{in}}$ --- \emph{even though}
+        $(\lambda_1 - \lambda_2)/2$ isolates the signal exactly (measured:
+        $r = 0.89$ with $p_{\mathrm{out}}$, $r = 0.15$ with $p_{\mathrm{in}}$).
+        Confirmations: (i) \emph{whitening} the truncated spectrum --- a purely
+        geometric correction --- restores power from $0.24$ to $0.96$; (ii) the
+        VGAE latent geometry disentangles the parameters (its leading singular
+        value correlates $-0.61$ with $p_{\mathrm{out}}$ but only $0.19$ with
+        $p_{\mathrm{in}}$) and reaches the same $0.96$ without any explicit
+        correction (Section~\ref{sec:mechanism}).
+  \item Practical guidance: the whitened truncated spectrum is the best overall
+        statistic across aligned and misaligned dependence; learned summaries
+        are an alternative that self-disentangles but is weaker when dependence
+        is spectrum-aligned (Section~\ref{sec:sbm}).
 \end{enumerate}
 
 \section{Related Work}\label{sec:related}
@@ -123,7 +134,15 @@ baseline summaries. \todo{deeper positioning pass; verify the
 \paragraph{Graph embeddings.} Survey: \citet{cai2018survey}. We build on the
 variational graph autoencoder \citep{kipf2016variational}. Spectral
 descriptors such as NetLSD \citep{tsitsulin2018netlsd} are fixed (non-learned)
-alternatives that we include in the planned baseline set.
+alternatives included in our baseline set.
+
+\paragraph{Affinely invariant dependence measures.} Whitening before dCor is
+the sample analogue of affinely invariant distance correlation
+\citep{dueck2014affinely}. The whitening idea is therefore not ours; the
+contributions are the diagnosis that the graph-population benchmark fails for
+geometric (not informational) reasons, the demonstration on graph spectra, and
+the observation that learned embeddings achieve the same effect without
+explicit normalization.
 
 \section{Method}\label{sec:method}
 
@@ -243,6 +262,54 @@ statistics lead ($0.84$--$0.88$ vs.\ $0.32$ at $\rho = 0.5$). The regimes are
 complementary; neither statistic dominates. \todo{combined statistic
 spectral$\oplus$vgae; verify vgae\_sv type-I ($0.08$ at $R{=}25$) at $R{=}100$}
 
+\subsection{Stronger baselines: more information does not help; better geometry does}
+\label{sec:killorconfirm}
+
+Could the failure in Table~\ref{tab:sbm} be an artifact of truncating the
+spectrum at five eigenvalues, of using dCor rather than a kernel statistic, or
+of ignoring multi-scale structure? Table~\ref{tab:d2b} adds, under identical
+seeds and protocol: dCor on \emph{all} $n = 60$ eigenvalues
+(\texttt{full\_spec}), NetLSD heat-trace signatures \citep{tsitsulin2018netlsd}
+(\texttt{netlsd}), HSIC with Gaussian kernels and median-heuristic bandwidth
+(\texttt{hsic5}), and dCor on the ZCA-\emph{whitened} top-5 spectrum
+(\texttt{spec5w}) --- the sample analogue of affinely invariant distance
+correlation \citep{dueck2014affinely}, and the direct test of the geometric
+explanation: whitening changes no information, only the metric.
+
+\begin{table}[ht]
+\centering
+\caption{Kill-or-confirm baselines, SBM pairs ($R = 25$, same seeds as
+Table~\ref{tab:sbm}). Adding information (\texttt{full\_spec}, \texttt{netlsd})
+or changing the dependence measure (\texttt{hsic5}) does not repair the
+$p_{\mathrm{out}}$-only failure; fixing the geometry (\texttt{spec5w}) does,
+matching the learned summary.}
+\label{tab:d2b}
+\begin{tabular}{llccccccc}
+\toprule
+cond. & $\rho$ & $\lambda_{\max}$ & spec5 & full\_spec & netlsd & hsic5 & spec5w & vgae \\
+\midrule
+both        & 0.0 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.08 & 0.04 \\
+both        & 0.5 & 0.84 & 0.88 & 0.84 & 0.80 & 0.84 & 0.76 & 0.24 \\
+both        & 1.0 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 0.92 \\
+\addlinespace
+$p_{\mathrm{out}}$ & 0.0 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.08 \\
+$p_{\mathrm{out}}$ & 0.5 & 0.08 & 0.16 & 0.16 & 0.12 & 0.12 & \textbf{0.28} & 0.16 \\
+$p_{\mathrm{out}}$ & 1.0 & 0.24 & 0.24 & 0.36 & 0.32 & 0.28 & \textbf{0.96} & \textbf{0.96} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three conclusions. First, the failure is not informational: sixty eigenvalues
+do no better than one ($0.36$ vs.\ $0.24$), and neither a multi-scale
+descriptor nor a kernel statistic helps. Second, the failure is geometric: a
+linear re-metrization of the same five numbers lifts power from $0.24$ to
+$0.96$. Third, the learned summary reaches the same power \emph{without}
+explicit whitening --- but pays for it when dependence is aligned with the
+dominant spectral directions ($0.24$ vs.\ $0.76$--$0.88$ at $\rho = 0.5$,
+\textbf{both}). The whitened spectrum is therefore the practical
+recommendation; the learned summary is the demonstration that representation
+geometry is the deciding quantity.
+
 \subsection{Mechanism: entanglement vs.\ disentanglement}\label{sec:mechanism}
 
 For a balanced two-block SBM the leading adjacency eigenvalues concentrate
@@ -264,25 +331,62 @@ eigenvalues with equal magnitude. Information content is not sufficient for
 test power; the \emph{orientation} of the summary's coordinates relative to
 nuisance variation decides it.
 
+We verify the entanglement claim directly: over $200$ independent SBMs sampled
+from the experimental parameter ranges, every one of the five leading
+adjacency eigenvalues correlates dominantly with $p_{\mathrm{in}}$
+($r = 0.63$--$0.92$), with $\lambda_1$ and $\lambda_2$ loading on
+$p_{\mathrm{out}}$ with \emph{opposite signs} ($+0.32$ / $-0.31$), exactly as
+the $\tfrac{n}{2}(p_{\mathrm{in}} \pm p_{\mathrm{out}})$ approximation
+predicts. The derived combination $(\lambda_1 - \lambda_2)/2$ isolates the
+signal ($r = 0.89$ with $p_{\mathrm{out}}$, $r = 0.15$ with $p_{\mathrm{in}}$)
+--- present in the spectrum, aligned with no raw coordinate
+(Table~\ref{tab:mech}).
+
+\begin{table}[ht]
+\centering
+\caption{Pearson correlation of each summary coordinate with the generative
+parameters ($200$ independent SBMs). Eigenvalues entangle the parameters; the
+leading learned singular value is the $p_{\mathrm{out}}$ coordinate.}
+\label{tab:mech}
+\begin{tabular}{lcc@{\qquad}lcc}
+\toprule
+coordinate & $p_{\mathrm{in}}$ & $p_{\mathrm{out}}$ & coordinate & $p_{\mathrm{in}}$ & $p_{\mathrm{out}}$ \\
+\midrule
+$\lambda_1$ & 0.89 & 0.32  & $\mathrm{sv}_1$ & 0.19 & $-$0.61 \\
+$\lambda_2$ & 0.92 & $-$0.31 & $\mathrm{sv}_2$ & $-$0.59 & $-$0.30 \\
+$\lambda_3$ & 0.67 & 0.43  & $\mathrm{sv}_3$ & $-$0.75 & $-$0.23 \\
+$\lambda_4$ & 0.68 & 0.46  & $\mathrm{sv}_4$ & $-$0.73 & $-$0.16 \\
+$\lambda_5$ & 0.63 & 0.55  & $\mathrm{sv}_5$ & $-$0.73 & $-$0.11 \\
+\midrule
+$(\lambda_1{-}\lambda_2)/2$ & 0.15 & 0.89 & & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 The VGAE latent geometry, by contrast, disentangles the parameters. The
 inner-product decoder places same-block nodes near one another and the two
 blocks at an angle determined by the cross-block connection probability:
 between-cluster separation tracks $p_{\mathrm{out}}$ while within-cluster
-spread tracks $p_{\mathrm{in}}$. These map to \emph{different} singular values
-of the centered latent matrix, so the correlated direction survives as its own
-coordinate rather than being buried in a nuisance-dominated sum.
-\todo{formalize as a lemma in expectation; empirical check: regress latent SVs
-on $(p_{\mathrm{in}}, p_{\mathrm{out}})$ to exhibit the disentanglement
-directly}
+spread tracks $p_{\mathrm{in}}$. Empirically (Table~\ref{tab:mech}), the
+\emph{leading} singular value is the $p_{\mathrm{out}}$ coordinate ($r =
+-0.61$ vs.\ $0.19$ with $p_{\mathrm{in}}$), with $p_{\mathrm{in}}$ relegated
+to $\mathrm{sv}_3$--$\mathrm{sv}_5$. Distance-based dependence measures weight
+directions by variance; in the learned representation the highest-variance
+direction \emph{is} the signal direction, while in the raw spectrum it is the
+nuisance. This explains all of Table~\ref{tab:d2b}: whitening equalizes the
+directions (rescuing the fixed spectrum), and the learned summary arrives with
+the right orientation built in. \todo{formalize as a lemma in expectation for
+the 2-block SBM}
 
 \section{Limitations and Next Steps}\label{sec:limitations}
 
 \textbf{Scale.} All results are at $n = 60$, $k = 40$, $R \le 25$; the headline
-comparison needs $R = 100$ and sensitivity in $n$ and $k$.
-\textbf{Baselines.} The decisive missing baseline is dCor on the \emph{full}
-spectrum, plus kernel-MMD-style summaries and NetLSD; if the full spectrum
-recovers the $p_{\mathrm{out}}$ signal, the contribution narrows to compactness
-of learned summaries.
+comparisons need $R = 100$ and sensitivity in $n$ and $k$, and \texttt{vgae\_sv}'s
+type-I rate ($0.08$ at $R = 25$, within Monte-Carlo noise) must be confirmed.
+\textbf{Whitening stability.} ZCA whitening with $k = 40$ samples in $5$
+dimensions is benign; in higher-dimensional summaries the covariance estimate
+degrades and the learned summary's built-in orientation may become the more
+robust option --- untested.
 \textbf{Real data.} A paired brain-network application (the benchmark's home
 domain) is required for the full claim.
 \textbf{Features.} The original program includes testing whether node features
@@ -305,6 +409,11 @@ H.~Cai, V.~W. Zheng, and K.~C.-C. Chang.
   applications.
 \newblock \emph{IEEE Transactions on Knowledge and Data Engineering},
   30(9):1616--1637, 2018.
+
+\bibitem[Dueck et~al.(2014)]{dueck2014affinely}
+J.~Dueck, D.~Edelmann, T.~Gneiting, and D.~Richards.
+\newblock The affinely invariant distance correlation.
+\newblock \emph{Bernoulli}, 20(4):2305--2330, 2014.
 
 \bibitem[Fujita et~al.(2017)]{fujita2017correlation}
 A.~Fujita, D.~Y. Takahashi, J.~R. Balardin, M.~C. Vidal, and J.~R. Sato.
