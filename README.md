@@ -49,7 +49,11 @@ Estimate random-graph model parameters with **variational inference**, comparing
 - [x] Train a standard VGAE and use latent subsampling for downsampling (E0/E1, `results/`)
 - [x] Erdős–Rényi sanity-check experiment (n = 100): sample and compare distributions (E1)
 - [x] Structured families BA/WS/SBM downsampling comparison (E2)
-- [ ] Fix the inner-product decoder over-clustering bias (main finding of E1/E2 — see `results/`)
+- [x] Fix the over-clustering bias (E3): culprit was deterministic top-k decoding, not the
+      inner product. Density-calibrated Bernoulli decoding recovers true clustering on ER/SBM;
+      degree-corrected + Bernoulli is best on BA. WS (genuine transitivity) still under-clusters.
+- [ ] WS gap: edge-dependent decoding (the independence assumption given Z can't produce
+      lattice-like transitivity)
 - [ ] Embeddings vs. eigenvalues: correlation analysis between embedding space and eigenvalue spectrum
 - [ ] Bootstrap evaluation of the embedding-based dependence test (incl. uncorrelated graphs)
 - [ ] VI vs. MCMC vs. MLE for random-graph parameter estimation
