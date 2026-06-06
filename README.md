@@ -87,8 +87,12 @@ Estimate random-graph model parameters with **variational inference**, comparing
       robust single choice (best-of-all at the hardest cell, near-top in the blind spot)
 - [x] Positioned against affinely-invariant dCor (Dueck et al. 2014) and Xiong et al. 2019
       (vertex-aligned single-pair) in the paper's related work
+- [x] D4 sensitivity sweep (n in {40,60,100,150} x k in {20,40,80}): all 3 pre-registered
+      predictions confirmed. Benchmark blind for all n (structural); whitening rescue monotone
+      in n (saturates by n=100); gap widens with k. New: raw spectrum's blindness is merely
+      finite-sample (spectral5 -> 0.58 at n=150,k=80), whitening reaches it far sooner
 - [ ] Real data: paired brain networks (fMRI) — required for a non-workshop venue
-- [ ] Sensitivity sweep: n in {60,100,200}, k in {20,40,80}
+- [ ] Larger graphs (n >= 500) and learned-summary behavior across the (n,k) grid (spot-checked)
 - [ ] VI vs. MCMC vs. MLE for random-graph parameter estimation (Thread 3, untouched)
 
 ## Literature
