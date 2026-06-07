@@ -101,6 +101,50 @@ def hsic_perm_test(
     return obs, (count + 1) / (n_perm + 1)
 
 
+def _cca_first_direction(
+    x: np.ndarray, y: np.ndarray, reg: float = 1e-2
+) -> tuple[np.ndarray, np.ndarray]:
+    """First canonical directions (w_x, w_y) maximizing corr(x w_x, y w_y),
+    ridge-regularized for small samples. Solves the standard generalized
+    eigenproblem C_xx^{-1} C_xy C_yy^{-1} C_yx w_x = rho^2 w_x."""
+    xc = x - x.mean(axis=0, keepdims=True)
+    yc = y - y.mean(axis=0, keepdims=True)
+    n = xc.shape[0]
+    cxx = xc.T @ xc / n + reg * np.eye(xc.shape[1])
+    cyy = yc.T @ yc / n + reg * np.eye(yc.shape[1])
+    cxy = xc.T @ yc / n
+    m = np.linalg.solve(cxx, cxy) @ np.linalg.solve(cyy, cxy.T)
+    w, v = np.linalg.eig(m)
+    wx = np.real(v[:, int(np.argmax(np.real(w)))])
+    wy = np.linalg.solve(cyy, cxy.T @ wx)
+    return wx, wy
+
+
+def cca_split_test(
+    x: np.ndarray,
+    y: np.ndarray,
+    n_perm: int = 200,
+    reg: float = 1e-2,
+    seed: int | None = None,
+) -> tuple[float, float]:
+    """Learned-projection dependence test with sample splitting.
+
+    Learn the maximally-dependent linear projection (CCA) on a random half of
+    the pairs, then run a permutation Pearson test on the projected canonical
+    variates of the held-out half. Splitting makes the learned directions
+    independent of the test sample, so the permutation null is exact regardless
+    of how the projection was chosen — the embedding adapts to wherever the
+    dependence lives without invalidating calibration.
+    """
+    rng = np.random.default_rng(seed)
+    k = x.shape[0]
+    perm = rng.permutation(k)
+    tr, te = perm[: k // 2], perm[k // 2:]
+    wx, wy = _cca_first_direction(x[tr], y[tr], reg=reg)
+    xt, yt = x[te] @ wx, y[te] @ wy
+    return pearson_perm_test(xt, yt, n_perm=n_perm, seed=seed)
+
+
 def pearson_perm_test(
     x: np.ndarray, y: np.ndarray, n_perm: int = 200, seed: int | None = None
 ) -> tuple[float, float]:
