@@ -145,6 +145,40 @@ def cca_split_test(
     return pearson_perm_test(xt, yt, n_perm=n_perm, seed=seed)
 
 
+def _acat(p_values: list[float]) -> float:
+    """Cauchy (ACAT) combination of p-values — valid under arbitrary dependence."""
+    p = np.clip(np.asarray(p_values, dtype=float), 1e-15, 1 - 1e-15)
+    t = np.mean(np.tan((0.5 - p) * np.pi))
+    return float(0.5 - np.arctan(t) / np.pi)
+
+
+def cca_crossfit_test(
+    x: np.ndarray,
+    y: np.ndarray,
+    n_perm: int = 200,
+    reg: float = 1e-2,
+    seed: int | None = None,
+) -> tuple[float, float]:
+    """Cross-fit learned-projection test: the splitting fix.
+
+    Learn the canonical direction on each half and test on the OTHER half, so
+    every pair contributes to the test exactly once. The two held-out fold tests
+    are combined with ACAT (valid under dependence). Recovers the sample that
+    naive single-split CCA discards.
+    """
+    rng = np.random.default_rng(seed)
+    k = x.shape[0]
+    perm = rng.permutation(k)
+    a, b = perm[: k // 2], perm[k // 2:]
+    wx_a, wy_a = _cca_first_direction(x[a], y[a], reg=reg)
+    wx_b, wy_b = _cca_first_direction(x[b], y[b], reg=reg)
+    # learn on a -> test on b, and vice versa
+    _, p_b = pearson_perm_test(x[b] @ wx_a, y[b] @ wy_a, n_perm=n_perm, seed=seed)
+    _, p_a = pearson_perm_test(x[a] @ wx_b, y[a] @ wy_b, n_perm=n_perm, seed=seed + 1)
+    p = _acat([p_a, p_b])
+    return float(p), p
+
+
 def pearson_perm_test(
     x: np.ndarray, y: np.ndarray, n_perm: int = 200, seed: int | None = None
 ) -> tuple[float, float]:

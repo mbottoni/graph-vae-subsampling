@@ -29,7 +29,13 @@ from pathlib import Path
 import numpy as np
 
 from gvs.data.synthetic import sbm_pair_series
-from gvs.stats.dependence import cca_split_test, dcor_perm_test, pearson_perm_test, whiten
+from gvs.stats.dependence import (
+    cca_crossfit_test,
+    cca_split_test,
+    dcor_perm_test,
+    pearson_perm_test,
+    whiten,
+)
 from gvs.stats.embeddings import emb_spectral
 
 N_NODES, K, R = 60, 40, 100
@@ -39,7 +45,7 @@ N_PERM = 200
 ALPHA = 0.05
 RESULTS = Path(__file__).resolve().parent.parent / "results"
 OUT = RESULTS / "d6_learned_projection.json"
-METHODS = ["lambda_max", "spec5_white", "cca_split"]
+METHODS = ["lambda_max", "spec5_white", "cca_split", "cca_crossfit"]
 
 
 def wilson_ci(p_hat: float, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -75,6 +81,8 @@ def main() -> None:
                 pv["spec5_white"].append(p)
                 _, p = cca_split_test(s1, s2, N_PERM, seed=ps + 2)
                 pv["cca_split"].append(p)
+                _, p = cca_crossfit_test(s1, s2, N_PERM, seed=ps + 3)
+                pv["cca_crossfit"].append(p)
             cell = {}
             for m in METHODS:
                 rej = float(np.mean(np.array(pv[m]) < ALPHA))
