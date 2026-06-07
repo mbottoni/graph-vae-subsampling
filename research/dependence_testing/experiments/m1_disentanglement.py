@@ -23,7 +23,7 @@ from pathlib import Path
 import networkx as nx
 import numpy as np
 
-from gvs.stats.embeddings import emb_spectral, emb_vgae_sv
+from deptest.embeddings import emb_spectral, emb_vgae_sv
 
 N_GRAPHS, N_NODES = 200, 60
 P_IN_RANGE, P_OUT_RANGE = (0.15, 0.35), (0.02, 0.10)

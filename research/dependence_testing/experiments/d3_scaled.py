@@ -1,15 +1,21 @@
-"""D3d — definitive headline tables: R=100, decoupled seed streams.
+"""D3-scaled — the definitive version of the headline tables: R=100 + combined statistic.
 
-Replaces d3_scaled (demoted to preliminary after D3c showed its seed scheme
-couples data / VGAE-training / permutation randomness, mildly inflating
-vgae_sv's type-I to ~0.10). Here every replicate draws from three independent
-SeedSequence-spawned streams, the scheme validated in D3c (type-I exactly 0.05).
+Two purposes (plan priorities 2 and 3):
+1. R=100 replicates per cell -> binomial SE <= 0.05, settling (a) vgae_sv's
+   type-I rate (0.08 at R=25 — must come back ~0.05) and (b) tight CIs on the
+   0.96-vs-0.24 headline.
+2. The combined statistic: concatenation of the separately-whitened truncated
+   spectrum and VGAE singular values. If the two summaries fail in complementary
+   regimes, the combination should track the upper envelope in both conditions.
 
-Statistics: benchmark, raw spectrum, whitened spectrum, learned SVs, and TWO
-combiners — concatenation (diluted in d3_scaled interim: 0.63 vs 0.77 envelope
-at rho=0.5) and Bonferroni min-p (calibrated at 0.02 in D3c).
+Methods kept: the benchmark, the raw spectrum, the two winners, the combination.
+(full_spec / netlsd / hsic were settled in D2b and are dropped.)
 
-Writes results/d3d_definitive.json (incremental saves per block).
+Fresh seed base (offset from D2/D2b) — this is an independent confirmation, not
+a re-analysis of the same draws. Partial results are written to JSON after every
+(condition, rho) block so a long run can be inspected/recovered mid-flight.
+
+Writes results/d3_scaled.json.
 """
 
 from __future__ import annotations
@@ -20,9 +26,9 @@ from pathlib import Path
 
 import numpy as np
 
-from gvs.data.synthetic import sbm_pair_series
-from gvs.stats.dependence import dcor_perm_test, pearson_perm_test, whiten
-from gvs.stats.embeddings import emb_spectral, emb_vgae_sv
+from deptest.pairs import sbm_pair_series
+from deptest.dependence import dcor_perm_test, pearson_perm_test, whiten
+from deptest.embeddings import emb_spectral, emb_vgae_sv
 
 K, N_NODES = 40, 60
 RHOS = [0.0, 0.5, 1.0]
@@ -30,11 +36,11 @@ CONDITIONS = ["both", "p_out"]
 R = 100
 N_PERM = 200
 ALPHA = 0.05
+SEED_BASE = 7_000_000  # fresh draws, independent of D2/D2b
 RESULTS = Path(__file__).resolve().parent.parent / "results"
-OUT = RESULTS / "d3d_definitive.json"
+OUT = RESULTS / "d3_scaled.json"
 
-METHODS = ["lambda_max", "spectral5", "spec5_white", "vgae_sv",
-           "concat", "bonferroni_min"]
+METHODS = ["lambda_max", "spectral5", "spec5_white", "vgae_sv", "combined"]
 
 
 def wilson_ci(p_hat: float, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -45,7 +51,6 @@ def wilson_ci(p_hat: float, n: int, z: float = 1.96) -> tuple[float, float]:
 
 
 def main() -> None:
-    root = np.random.SeedSequence(126_2026)
     power: dict[str, dict] = {}
     t0 = time.time()
     RESULTS.mkdir(exist_ok=True)
@@ -53,41 +58,34 @@ def main() -> None:
     for cond in CONDITIONS:
         power[cond] = {}
         for rho in RHOS:
-            cell_ss = root.spawn(1)[0]
-            data_ss, train_ss, perm_ss = cell_ss.spawn(3)
-            data_seeds = data_ss.generate_state(R)
-            perm_seeds = perm_ss.generate_state(R)
-            train_seeds = train_ss.generate_state(R * 2 * K).reshape(R, 2, K)
-
             pv: dict[str, list[float]] = {m: [] for m in METHODS}
             for r in range(R):
-                gs1, gs2 = sbm_pair_series(
-                    K, N_NODES, rho, correlate=cond, seed=int(data_seeds[r])
-                )
+                seed = SEED_BASE + (CONDITIONS.index(cond) * 1000
+                                    + int(100 * rho)) * 1000 + r
+                gs1, gs2 = sbm_pair_series(K, N_NODES, rho, correlate=cond, seed=seed)
+
                 spec1 = np.array([emb_spectral(g, q=5) for g in gs1])
                 spec2 = np.array([emb_spectral(g, q=5) for g in gs2])
-                vg1 = np.array([emb_vgae_sv(g, seed=int(train_seeds[r, 0, j]))
+                vg1 = np.array([emb_vgae_sv(g, seed=seed + j)
                                 for j, g in enumerate(gs1)])
-                vg2 = np.array([emb_vgae_sv(g, seed=int(train_seeds[r, 1, j]))
+                vg2 = np.array([emb_vgae_sv(g, seed=seed + 500 + j)
                                 for j, g in enumerate(gs2)])
                 sw1, sw2 = whiten(spec1), whiten(spec2)
+                comb1 = np.hstack([sw1, whiten(vg1)])
+                comb2 = np.hstack([sw2, whiten(vg2)])
 
-                ps = int(perm_seeds[r])
-                _, p = pearson_perm_test(spec1[:, 0], spec2[:, 0], N_PERM, seed=ps)
+                _, p = pearson_perm_test(spec1[:, 0], spec2[:, 0], N_PERM, seed=seed)
                 pv["lambda_max"].append(p)
-                _, p = dcor_perm_test(spec1, spec2, N_PERM, seed=ps + 1)
+                _, p = dcor_perm_test(spec1, spec2, N_PERM, seed=seed)
                 pv["spectral5"].append(p)
-                _, p_sw = dcor_perm_test(sw1, sw2, N_PERM, seed=ps + 2)
-                pv["spec5_white"].append(p_sw)
-                _, p_vg = dcor_perm_test(vg1, vg2, N_PERM, seed=ps + 3)
-                pv["vgae_sv"].append(p_vg)
-                _, p = dcor_perm_test(np.hstack([sw1, whiten(vg1)]),
-                                      np.hstack([sw2, whiten(vg2)]),
-                                      N_PERM, seed=ps + 4)
-                pv["concat"].append(p)
-                pv["bonferroni_min"].append(min(p_sw, p_vg) * 2)
+                _, p = dcor_perm_test(sw1, sw2, N_PERM, seed=seed)
+                pv["spec5_white"].append(p)
+                _, p = dcor_perm_test(vg1, vg2, N_PERM, seed=seed)
+                pv["vgae_sv"].append(p)
+                _, p = dcor_perm_test(comb1, comb2, N_PERM, seed=seed)
+                pv["combined"].append(p)
 
-                if (r + 1) % 25 == 0:
+                if (r + 1) % 20 == 0:
                     print(f"[{cond}] rho={rho:.1f}  {r + 1}/{R}  "
                           f"({time.time() - t0:.0f}s)", flush=True)
 
@@ -101,13 +99,14 @@ def main() -> None:
                   + "  ".join(f"{m}={cell[m]['power']:.2f}" for m in METHODS),
                   flush=True)
 
+            # Incremental save so a long run is inspectable/recoverable.
             OUT.write_text(json.dumps({
-                "experiment": "d3d_definitive",
+                "experiment": "d3_scaled",
                 "config": {"k_pairs": K, "n_nodes": N_NODES, "rhos": RHOS,
                            "conditions": CONDITIONS, "replicates": R,
                            "n_perm": N_PERM, "alpha": ALPHA,
-                           "seeding": "SeedSequence(1262026), spawned per cell:"
-                                      " data/train/perm (D3c-validated)"},
+                           "seed_base": SEED_BASE,
+                           "combined": "hstack(whiten(spec5), whiten(vgae_sv))"},
                 "power": power,
                 "complete": False,
             }, indent=2))

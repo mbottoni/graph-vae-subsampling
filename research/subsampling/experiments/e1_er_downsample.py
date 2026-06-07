@@ -21,9 +21,9 @@ import torch
 from gvs.data.synthetic import erdos_renyi, to_pyg
 from gvs.metrics.distances import normalized_degree_distance
 from gvs.metrics.graph_stats import degree_sequence, summary
-from gvs.models.decoders import latent_downsample
+from subsampling.decoders import latent_downsample
 from gvs.models.vgae import encode_latents, train_vgae
-from gvs.sampling.baselines import forest_fire, random_walk, uniform_node
+from subsampling.baselines import forest_fire, random_walk, uniform_node
 
 N, P = 100, 0.1
 MS = [25, 50, 75]

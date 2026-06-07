@@ -1,117 +1,56 @@
 # Graph VAE Subsampling
 
-Research project exploring **variational graph autoencoders (VGAEs) as a tool for downsampling large graphs** and, more broadly, **graph embeddings as summary statistics for testing dependence between graphs**.
+A research repository with **two distinct research directions** that grew from one
+starting question — *can a variational graph autoencoder learn to subsample large
+graphs?* — and a **common library** of code they share.
 
-## Motivation
+## Repository layout
 
-Graphs are rich representations used successfully across many domains. Two related problems motivate this work:
+```
+src/
+  gvs/          COMMON library — graph generators, the VGAE, structural metrics
+  subsampling/  Thread-1 library — latent-subsampling decoders, classical samplers
+  deptest/      Thread-2 library — graph-pair generators, dependence tests, embeddings
 
-1. **Downsampling large graphs.** Many graph algorithms do not scale. If a generative model (VGAE/GAN) can learn the structure of a large graph in a low-dimensional latent space, we may be able to *decode a smaller graph* that preserves the structural and distributional properties of the original — i.e., learn how to sample a representative subgraph.
+research/
+  subsampling/            ── Direction 1: VAE-based graph downsampling (the original idea)
+    README.md  experiments/  results/
+  dependence_testing/     ── Direction 2: graph summaries for dependence testing
+    README.md  experiments/  results/  paper/
+```
 
-2. **Measuring dependence between graphs.** In domains such as neuroscience (e.g., dependence between brain regions in fMRI networks), one needs a statistical test of dependence among sets of graphs. The main challenge is translating graph components (e.g., the adjacency matrix) into vectors of values. The state-of-the-art approach (Fujita et al., 2016) uses the **Pearson correlation of adjacency-matrix eigenvalues**, which summarize properties such as cliques and walk counts. Graph embeddings offer a richer, more flexible alternative mapping from the adjacency matrix (and optionally node/edge features) into a latent space — but they have not yet been explored for dependence testing.
+The common library holds everything both directions use (random-graph generators,
+the VGAE encoder/decoder and training loop, degree/clustering/spectral metrics).
+Each direction's own code lives in its own package, and its experiments, results,
+and writeups live under `research/<direction>/`.
 
-## Research Threads
+## The two directions
 
-### 1. Graph downsampling with VGAEs
+### 1. [Subsampling](research/subsampling/README.md) — the original idea
+Use a (V)GAE to **downsample a large graph**: learn node embeddings, then decode a
+*smaller* graph that preserves the original's structural distributions. Compared
+against classical samplers (uniform node, random walk, forest fire). **Status:**
+the over-clustering bias of the inner-product decoder was diagnosed and fixed
+(density-calibrated Bernoulli decoding); classical samplers remain hard to beat
+except in specific small-fraction regimes. Open threads: edge-dependent decoding
+for lattice transitivity, and the right invariant to preserve at small sample
+fractions. *Actively being explored.*
 
-Use a stochastic embedding to sample from a large graph. Modify the decoder architecture so that input and output graphs are structurally similar, but the **output is smaller**.
+### 2. [Dependence testing](research/dependence_testing/README.md)
+Test statistical dependence between **populations of graph pairs** (extending
+Fujita et al.'s spectral-radius correlation test). **Status:** a characterized
+blind spot of the benchmark (few-community SBMs with between-block dependence), a
+geometric explanation (information ≠ test power), a cheap fix (whitened spectra),
+and a negative result (learned projections don't beat fixed ones at small
+populations). Draft paper in `research/dependence_testing/paper/`.
 
-Approach:
-- Train a standard VGAE and use **intermediate layers of the decoder** as the downsampling mechanism.
-- Alternative: use a graph GAN (or GVAE) to learn how to sample from a large graph, treating the latent space as a low-dimensional space in which to reconstruct the graph.
+## Setup
 
-Validation on synthetic graphs:
-1. Build a random Erdős–Rényi graph (n = 100).
-2. Sample a smaller graph from it via the model.
-3. Check whether structural distributions (e.g., degree distribution) are preserved.
+```bash
+uv sync
+uv run python research/subsampling/experiments/e0_vgae_er.py        # Direction 1
+uv run python research/dependence_testing/experiments/m1_disentanglement.py  # Direction 2
+```
 
-### 2. Dependence testing with graph embeddings
-
-Extend the eigenvalue-correlation test of Fujita et al. by replacing eigenvalues with graph embeddings as the summary statistic:
-
-- **Phase 1:** compute embeddings from the adjacency matrix only, and test dependence among embeddings instead of eigenvalues. Compare against the eigenvalue benchmark.
-- **Phase 2:** add node features as inputs to the embedding and test whether this adds information to the hypothesis test relative to the benchmark.
-
-Evaluation plan:
-- Bootstrap (~100 repetitions) on random graphs with known ground truth.
-- Compare embedding-based statistics against the max-eigenvalue (λ_max) baseline.
-- Include **uncorrelated graph pairs** to verify false-positive control.
-- Analyze the correlation between the embedding space and the eigenvalue spectrum.
-
-### 3. Side question: parameter estimation for random graphs
-
-Estimate random-graph model parameters with **variational inference**, comparing against MCMC and MLE.
-
-## Roadmap
-
-- [x] Understand the GraphVAE / VGAE model (M0 implemented in `src/gvs/models/vgae.py`)
-- [ ] Review image downsampling with VAEs (as an analogy/starting point)
-- [x] Train a standard VGAE and use latent subsampling for downsampling (E0/E1, `results/`)
-- [x] Erdős–Rényi sanity-check experiment (n = 100): sample and compare distributions (E1)
-- [x] Structured families BA/WS/SBM downsampling comparison (E2)
-- [x] Fix the over-clustering bias (E3): culprit was deterministic top-k decoding, not the
-      inner product. Density-calibrated Bernoulli decoding recovers true clustering on ER/SBM;
-      degree-corrected + Bernoulli is best on BA. WS (genuine transitivity) still under-clusters.
-- [ ] WS gap: edge-dependent decoding (the independence assumption given Z can't produce
-      lattice-like transitivity)
-- [x] E4 scale-up (n=1000, 5-10% samples): latent methods match uniform node everywhere and
-      beat it on BA degree shape at 5% (W1 0.0072±0.0001 vs 0.0093±0.0024 — 20x lower variance:
-      uniform sampling's hub lottery vs the latent posterior's smooth degree summary)
-- [ ] Open question from E4: density matching is the wrong invariant at small sample fractions
-      (mean degree collapses, graphs fragment, modularity becomes meaningless). Decide what
-      downsampling should preserve: density p vs mean degree / degree shape
-- [ ] Embeddings vs. eigenvalues: correlation analysis between embedding space and eigenvalue spectrum
-- [x] D1-D3 on ER pairs (k=40, n=60, R=20): all four statistics have exact type-I error (0.05)
-      and saturate power by rho=0.75. Hints (within noise at R=20): vgae_sv best at rho=0.25
-      (0.35 vs benchmark 0.25), spectral5/features best at rho=0.5 (0.95 vs 0.90)
-- [x] D2 on SBM pairs — headline Thread-2 result: with dependence only in p_out (rho=1),
-      the learned embedding detects what every spectral statistic misses
-      (vgae_sv power 0.96 vs lambda_max 0.24, spectral5 0.24, features 0.16).
-      Surprise: spectral5 fails too, despite (lambda_1 - lambda_2)/2 isolating p_out exactly —
-      information content is not enough; dCor's distance geometry is dominated by independent
-      p_in noise. The VGAE latent SVs *disentangle* (p_in, p_out) into separate components
-      (centroid separation tracks p_out; within-cluster tightness tracks p_in)
-- [x] Kill-or-confirm (D2b): whitening RESCUES the fixed spectrum — spec5_white 0.96 = vgae_sv
-      0.96 in the p_out condition, while full spectrum (0.36), NetLSD (0.32), HSIC (0.28) stay
-      weak. Mechanism confirmed (the failure is geometric, a linear fix suffices); method claim
-      demoted (learned embeddings are *one* way to disentangle, whitening is the cheaper way).
-- [x] Mechanism exhibited directly (m1): all adjacency eigenvalues p_in-dominated (0.63-0.92),
-      (lambda1-lambda2)/2 isolates p_out (corr 0.894), vgae sv_1 IS the p_out coordinate (-0.61).
-      Formalized as the two-centroid Proposition in the paper (sv_1 = sqrt(n/2 (logit gap)))
-- [x] D3c: vgae_sv's apparent type-I inflation (0.10) was a HARNESS BUG (seed coupling), not
-      the statistic — decoupled SeedSequence streams give exactly 0.050. Cautionary methods note
-- [x] D3d DEFINITIVE (R=100, decoupled seeds — the paper's headline table). p_out rho=1:
-      spec5_white 0.97 [0.92,0.99], concat 0.99, bonferroni_min 0.98, vgae_sv 0.89 [0.81,0.94];
-      benchmark 0.07, raw spec5 0.19. All type-I in [0.00,0.07]. No-free-lunch: whitening COSTS
-      in the aligned regime (0.65 vs raw 0.90 at both/rho=0.5). Bonferroni min-p is the most
-      robust single choice (best-of-all at the hardest cell, near-top in the blind spot)
-- [x] Positioned against affinely-invariant dCor (Dueck et al. 2014) and Xiong et al. 2019
-      (vertex-aligned single-pair) in the paper's related work
-- [x] D4 sensitivity sweep (n in {40,60,100,150} x k in {20,40,80}): all 3 pre-registered
-      predictions confirmed. Benchmark blind for all n (structural); whitening rescue monotone
-      in n (saturates by n=100); gap widens with k. New: raw spectrum's blindness is merely
-      finite-sample (spectral5 -> 0.58 at n=150,k=80), whitening reaches it far sooner
-- [x] D5 realism check (DC-SBM, multi-block): the blind spot SURVIVES degree heterogeneity
-      (dcsbm2: benchmark 0.17, whitening 0.92) but VANISHES with more communities (4-block:
-      benchmark 0.91-0.98). Partial refutation of the pre-registered prediction — caught a
-      real boundary before a reviewer could. Claim now scoped to few-community populations
-- [x] D5b boundary trace: benchmark power 0.07/0.70/0.98/1.0/1.0 for b=2..6. Sharp blind spot
-      only at b=2; smooth erosion governed by variance ratio (b-1)^2 s_out^2/[...]. The crude
-      (b-1)Dp_out<Dp_in threshold was wrong at b=3; corrected to the smooth model in the paper
-- [x] D6 learned projection (CCA + cross-fit): NEGATIVE result — learning the dependence
-      direction does NOT beat fixed whitening at k=40 pairs (rho=0.5 both: cca 0.37-0.45 vs
-      white 0.63 vs benchmark 0.82; p_out: cca 0.14-0.20 vs white 0.24). Calibrated. Sharpened
-      thesis: at small populations, the right geometry should be ENGINEERED, not learned —
-      explains why VGAE also trailed whitening; closes the deep/nonlinear avenue by inference
-- [ ] Real data: paired brain networks (fMRI) — required for a non-workshop venue
-- [ ] Larger graphs (n >= 500) and learned-summary behavior across the (n,k) grid (spot-checked)
-- [ ] VI vs. MCMC vs. MLE for random-graph parameter estimation (Thread 3, untouched)
-
-## Literature
-
-- *A Comprehensive Survey of Graph Embedding: Problems, Techniques and Applications*
-- Fujita et al. — *Correlation between graphs with an application to brain network analysis* (2016)
-- Kipf & Welling — *Variational Graph Auto-Encoders*
-- *BrainGNN: Interpretable Brain Graph Neural Network for fMRI Analysis*
-- *Understanding Graph Embedding Methods and their Applications*
-- *Learning Deep Representations for Graph Clustering*
+Each experiment writes a JSON summary next to itself under the direction's
+`results/`. See [`PLAN.md`](PLAN.md) for status and next steps across both directions.

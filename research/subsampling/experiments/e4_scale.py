@@ -25,9 +25,9 @@ import torch
 from gvs.data.synthetic import barabasi_albert, erdos_renyi, stochastic_block_model, to_pyg
 from gvs.metrics.distances import normalized_degree_distance
 from gvs.metrics.graph_stats import degree_sequence, summary
-from gvs.models.decoders import latent_downsample
+from subsampling.decoders import latent_downsample
 from gvs.models.vgae import encode_latents, node_biases, train_vgae
-from gvs.sampling.baselines import forest_fire, random_walk, uniform_node
+from subsampling.baselines import forest_fire, random_walk, uniform_node
 
 N, MS, R = 1000, [50, 100], 5
 RESULTS = Path(__file__).resolve().parent.parent / "results"

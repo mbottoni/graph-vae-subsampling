@@ -19,4 +19,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/gvs"]
+# gvs        = common library (shared by both research directions)
+# subsampling = Thread-1 lib (latent decoders, classical samplers)
+# deptest     = Thread-2 lib (graph-pair generators, dependence tests, embeddings)
+packages = ["src/gvs", "src/subsampling", "src/deptest"]

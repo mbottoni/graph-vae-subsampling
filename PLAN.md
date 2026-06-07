@@ -1,5 +1,16 @@
 # Project Plan
 
+## Repository structure (refactored June 2026)
+
+Two research directions over a shared library:
+- `src/gvs/` — common library (generators, VGAE, metrics)
+- `src/subsampling/` + `research/subsampling/` — Direction 1 (VAE downsampling; E0–E4)
+- `src/deptest/` + `research/dependence_testing/` — Direction 2 (dependence testing; D1–D6, M1)
+
+Each direction has its own README and roadmap; this file is the cross-cutting plan.
+The "Thread 1 / Thread 2" naming below predates the refactor and maps to
+subsampling / dependence_testing respectively.
+
 ## Status & next steps (June 2026)
 
 **Done:** E0–E4 (Thread 1) and D1–D3 + D2-SBM (Thread 2). See `results/*.json` and the

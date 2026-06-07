@@ -28,15 +28,15 @@ from pathlib import Path
 
 import numpy as np
 
-from gvs.data.synthetic import sbm_pair_series
-from gvs.stats.dependence import (
+from deptest.pairs import sbm_pair_series
+from deptest.dependence import (
     cca_crossfit_test,
     cca_split_test,
     dcor_perm_test,
     pearson_perm_test,
     whiten,
 )
-from gvs.stats.embeddings import emb_spectral
+from deptest.embeddings import emb_spectral
 
 N_NODES, K, R = 60, 40, 100
 RHOS = [0.0, 0.5, 1.0]

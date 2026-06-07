@@ -29,9 +29,9 @@ from pathlib import Path
 
 import numpy as np
 
-from gvs.data.synthetic import sbm_pair_series
-from gvs.stats.dependence import dcor_perm_test, pearson_perm_test, whiten
-from gvs.stats.embeddings import emb_spectral
+from deptest.pairs import sbm_pair_series
+from deptest.dependence import dcor_perm_test, pearson_perm_test, whiten
+from deptest.embeddings import emb_spectral
 
 NS = [40, 60, 100, 150]
 KS = [20, 40, 80]

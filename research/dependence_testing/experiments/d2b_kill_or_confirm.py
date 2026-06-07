@@ -26,9 +26,9 @@ from pathlib import Path
 
 import numpy as np
 
-from gvs.data.synthetic import sbm_pair_series
-from gvs.stats.dependence import dcor_perm_test, hsic_perm_test, pearson_perm_test, whiten
-from gvs.stats.embeddings import emb_full_spectrum, emb_netlsd, emb_vgae_sv
+from deptest.pairs import sbm_pair_series
+from deptest.dependence import dcor_perm_test, hsic_perm_test, pearson_perm_test, whiten
+from deptest.embeddings import emb_full_spectrum, emb_netlsd, emb_vgae_sv
 
 K, N_NODES = 40, 60
 RHOS = [0.0, 0.5, 1.0]

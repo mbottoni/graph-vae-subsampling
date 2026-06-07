@@ -23,9 +23,9 @@ from pathlib import Path
 
 import numpy as np
 
-from gvs.data.synthetic import dc_sbm_pair_series
-from gvs.stats.dependence import dcor_perm_test, pearson_perm_test, whiten
-from gvs.stats.embeddings import emb_spectral
+from deptest.pairs import dc_sbm_pair_series
+from deptest.dependence import dcor_perm_test, pearson_perm_test, whiten
+from deptest.embeddings import emb_spectral
 
 N_NODES, K, R = 80, 40, 100
 BLOCKS = [2, 3, 4, 5, 6]

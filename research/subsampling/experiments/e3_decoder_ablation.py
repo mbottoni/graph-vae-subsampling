@@ -31,9 +31,9 @@ from gvs.data.synthetic import (
 )
 from gvs.metrics.distances import normalized_degree_distance
 from gvs.metrics.graph_stats import degree_sequence, summary
-from gvs.models.decoders import latent_downsample
+from subsampling.decoders import latent_downsample
 from gvs.models.vgae import encode_latents, node_biases, train_vgae
-from gvs.sampling.baselines import uniform_node
+from subsampling.baselines import uniform_node
 
 N, M_SUB, R = 100, 50, 10
 RESULTS = Path(__file__).resolve().parent.parent / "results"
