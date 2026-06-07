@@ -1,0 +1,76 @@
+{
+  "experiment": "d5b_block_boundary",
+  "config": {
+    "n_nodes": 80,
+    "k_pairs": 40,
+    "replicates": 100,
+    "blocks": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "rhos": [
+      0.0,
+      1.0
+    ],
+    "alpha": 0.05,
+    "dp_in": 0.2,
+    "dp_out": 0.08,
+    "predicted_threshold_blocks": 3.5
+  },
+  "results": {
+    "2": {
+      "0.0": {
+        "lambda_max": 0.02,
+        "spec5_white": 0.04
+      },
+      "1.0": {
+        "lambda_max": 0.07,
+        "spec5_white": 1.0
+      }
+    },
+    "3": {
+      "0.0": {
+        "lambda_max": 0.05,
+        "spec5_white": 0.05
+      },
+      "1.0": {
+        "lambda_max": 0.7,
+        "spec5_white": 1.0
+      }
+    },
+    "4": {
+      "0.0": {
+        "lambda_max": 0.06,
+        "spec5_white": 0.1
+      },
+      "1.0": {
+        "lambda_max": 0.98,
+        "spec5_white": 1.0
+      }
+    },
+    "5": {
+      "0.0": {
+        "lambda_max": 0.04,
+        "spec5_white": 0.07
+      },
+      "1.0": {
+        "lambda_max": 1.0,
+        "spec5_white": 1.0
+      }
+    },
+    "6": {
+      "0.0": {
+        "lambda_max": 0.05,
+        "spec5_white": 0.03
+      },
+      "1.0": {
+        "lambda_max": 1.0,
+        "spec5_white": 1.0
+      }
+    }
+  },
+  "complete": true
+}
