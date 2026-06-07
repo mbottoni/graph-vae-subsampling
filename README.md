@@ -98,6 +98,11 @@ Estimate random-graph model parameters with **variational inference**, comparing
 - [x] D5b boundary trace: benchmark power 0.07/0.70/0.98/1.0/1.0 for b=2..6. Sharp blind spot
       only at b=2; smooth erosion governed by variance ratio (b-1)^2 s_out^2/[...]. The crude
       (b-1)Dp_out<Dp_in threshold was wrong at b=3; corrected to the smooth model in the paper
+- [x] D6 learned projection (CCA + cross-fit): NEGATIVE result — learning the dependence
+      direction does NOT beat fixed whitening at k=40 pairs (rho=0.5 both: cca 0.37-0.45 vs
+      white 0.63 vs benchmark 0.82; p_out: cca 0.14-0.20 vs white 0.24). Calibrated. Sharpened
+      thesis: at small populations, the right geometry should be ENGINEERED, not learned —
+      explains why VGAE also trailed whitening; closes the deep/nonlinear avenue by inference
 - [ ] Real data: paired brain networks (fMRI) — required for a non-workshop venue
 - [ ] Larger graphs (n >= 500) and learned-summary behavior across the (n,k) grid (spot-checked)
 - [ ] VI vs. MCMC vs. MLE for random-graph parameter estimation (Thread 3, untouched)

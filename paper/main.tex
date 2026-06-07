@@ -475,6 +475,52 @@ spec5\_white      & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
 \end{tabular}
 \end{table}
 
+\subsection{Can a learned projection do better? A negative result}
+\label{sec:learned}
+
+Whitening is a \emph{fixed}, dependence-agnostic re-metrization, and it pays for
+the blind spot with power in the aligned regime (Table~\ref{tab:sbm}). A natural
+hope is to \emph{learn} the projection that maximizes dependence directly and
+thereby adapt to either regime. The linear instance is canonical correlation
+analysis (CCA) on the spectral features; to keep the permutation null exact we
+learn the canonical directions on a random half of the pairs and test on the
+held-out half (\texttt{cca\_split}), or cross-fit both halves and combine with
+ACAT (\texttt{cca\_crossfit}).
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Learned projection vs.\ fixed whitening ($R = 100$). The learned CCA
+projection is calibrated but \emph{loses} to whitening at the discriminating
+$\rho = 0.5$ in both regimes; cross-fitting recovers only part of the
+sample-splitting cost.}
+\label{tab:learned}
+\begin{tabular}{llcccc}
+\toprule
+cond. & $\rho$ & $\lambda_{\max}$ & spec5\_white & cca\_split & cca\_xfit \\
+\midrule
+both & 0.0 & .04 & .07 & .06 & .05 \\
+both & 0.5 & \textbf{.82} & .63 & .37 & .45 \\
+$p_{\mathrm{out}}$ & 0.0 & .04 & .08 & .04 & .06 \\
+$p_{\mathrm{out}}$ & 0.5 & .11 & \textbf{.24} & .14 & .20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The learned projection does not pay off (Table~\ref{tab:learned}): at moderate
+signal it is dominated by both the benchmark (aligned) and the whitened spectrum
+(blind spot), and cross-fitting closes only about a third of the gap. The cause
+is the sample size intrinsic to the problem --- tens of graph \emph{pairs}, as in
+a typical neuroimaging cohort --- which is too small to estimate a projection
+without overfitting; a fixed transform spends no statistical budget on
+estimation. This also explains why the learned VGAE summary
+(Section~\ref{sec:sbm}) trails whitening despite its self-orientation: it pays
+the same price. We read this as a sharpened thesis rather than a failure ---
+\emph{representation geometry decides power, but at small population sizes the
+right geometry should be engineered, not learned} --- and by extension we do not
+expect higher-capacity (deep) projections to help at this scale, as they incur a
+larger, not smaller, estimation penalty.
+
 \subsection{Mechanism: entanglement vs.\ disentanglement}\label{sec:mechanism}
 
 For a balanced two-block SBM the leading adjacency eigenvalues concentrate
