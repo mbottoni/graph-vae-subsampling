@@ -91,6 +91,13 @@ Estimate random-graph model parameters with **variational inference**, comparing
       predictions confirmed. Benchmark blind for all n (structural); whitening rescue monotone
       in n (saturates by n=100); gap widens with k. New: raw spectrum's blindness is merely
       finite-sample (spectral5 -> 0.58 at n=150,k=80), whitening reaches it far sooner
+- [x] D5 realism check (DC-SBM, multi-block): the blind spot SURVIVES degree heterogeneity
+      (dcsbm2: benchmark 0.17, whitening 0.92) but VANISHES with more communities (4-block:
+      benchmark 0.91-0.98). Partial refutation of the pre-registered prediction — caught a
+      real boundary before a reviewer could. Claim now scoped to few-community populations
+- [x] D5b boundary trace: benchmark power 0.07/0.70/0.98/1.0/1.0 for b=2..6. Sharp blind spot
+      only at b=2; smooth erosion governed by variance ratio (b-1)^2 s_out^2/[...]. The crude
+      (b-1)Dp_out<Dp_in threshold was wrong at b=3; corrected to the smooth model in the paper
 - [ ] Real data: paired brain networks (fMRI) — required for a non-workshop venue
 - [ ] Larger graphs (n >= 500) and learned-summary behavior across the (n,k) grid (spot-checked)
 - [ ] VI vs. MCMC vs. MLE for random-graph parameter estimation (Thread 3, untouched)

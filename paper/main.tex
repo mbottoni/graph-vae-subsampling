@@ -31,28 +31,31 @@ Measuring statistical dependence between sets of graphs is a central problem in
 domains such as brain-network analysis, where the main difficulty is mapping
 graph structure into vectors amenable to classical tests. The state-of-the-art
 approach correlates the spectral radii of paired graphs
-\citep{fujita2017correlation}. We show that this test --- and every \emph{raw}
-spectral statistic we evaluate, including the full eigenvalue spectrum, NetLSD
-heat traces, and kernel (HSIC) variants --- fails in a simple and practically
-relevant regime: stochastic block model populations whose dependence is
-confined to the between-block connection probability $p_{\mathrm{out}}$
-(power $\le 0.19$ at $\alpha = 0.05$, $R = 100$). The failure is
-\emph{geometric}, not informational: the spectrum contains the dependence
-signal in closed form ($(\lambda_1 - \lambda_2)/2$ tracks $p_{\mathrm{out}}$ at
-$r = 0.89$), but distance-based dependence measures are dominated by
-independent nuisance variation in $p_{\mathrm{in}}$, which every leading
-eigenvalue loads on. Two statistics restore power to $\approx 0.9$: (i) a
-\emph{whitened} truncated spectrum ($0.97$) --- the sample analogue of
-affinely invariant distance correlation --- and (ii) the singular values of
-the latent node-embedding matrix of a per-graph variational graph autoencoder
-(VGAE) ($0.89$), whose leading coordinate aligns with $p_{\mathrm{out}}$
-\emph{without} explicit nuisance normalization. The gain is not free: the same
-whitening costs power when dependence is spectrum-aligned, and a Bonferroni
-combiner is the most robust single choice across regimes. All tests are
-exactly calibrated under permutation nulls. The headline message is that
-representation geometry, not information content, decides test power for graph
-dependence.
-\todo{rerun at $R{=}100$; real fMRI data; combined statistic}
+\citep{fujita2017correlation}. We exhibit a \emph{characterizable} blind spot of
+this test: on few-community stochastic block model populations whose dependence
+is confined to the between-block probability $p_{\mathrm{out}}$, the spectral
+radius --- and every \emph{raw} spectral statistic we evaluate, including the
+full spectrum, NetLSD, and kernel (HSIC) variants --- has power
+$\le 0.19$ at $\alpha = 0.05$ ($R = 100$). The failure is \emph{geometric}, not
+informational: the spectrum contains the signal in closed form
+($(\lambda_1 - \lambda_2)/2$ tracks $p_{\mathrm{out}}$ at $r = 0.89$), but
+distance-based measures are dominated by independent nuisance variation in
+$p_{\mathrm{in}}$. We characterize the blind spot --- in a
+$b$-block SBM the radius weights $p_{\mathrm{out}}$ by $(b{-}1)\times$
+$p_{\mathrm{in}}$, so the detectable signal grows smoothly with $b$ --- which
+both predicts that it survives degree heterogeneity (it does) and erodes as
+communities multiply (benchmark power $0.07 \to 0.70 \to 0.98$ for
+$b = 2, 3, 4$). It is thus a sharp phenomenon at two communities, not a property
+of SBMs in general. Within the blind spot, two statistics restore power
+to $\approx 0.9$: a \emph{whitened} truncated spectrum ($0.97$; the sample
+analogue of affinely invariant distance correlation) and the singular values of
+a per-graph variational graph autoencoder's latent matrix ($0.89$), which
+self-orient toward $p_{\mathrm{out}}$ without explicit normalization. The gain
+is not free --- whitening costs power when dependence is spectrum-aligned, and a
+Bonferroni combiner is the most robust single choice. All tests are exactly
+calibrated under permutation nulls. The message is that for graph dependence
+testing, representation geometry, not information content, decides power
+wherever the default summary is misaligned with the signal.
 \end{abstract}
 
 \section{Introduction}
@@ -97,11 +100,14 @@ testing between graph populations}. This work fills that gap.
         truncated spectra, structural features, and learned-embedding summaries
         --- are exactly calibrated under permutation nulls
         (Section~\ref{sec:calibration}).
-  \item On stochastic block model (SBM) populations whose dependence is
-        confined to the between-block density $p_{\mathrm{out}}$, the benchmark
-        and every \emph{raw} spectral statistic fail (power $\le 0.19$ at
-        $R = 100$, $\le 0.36$ at $R = 25$), including the full spectrum,
-        NetLSD, and HSIC variants (Section~\ref{sec:sbm}).
+  \item On \emph{few-community} SBM populations whose dependence is confined to
+        the between-block density $p_{\mathrm{out}}$, the benchmark and every
+        \emph{raw} spectral statistic fail (power $\le 0.19$ at $R = 100$),
+        including the full spectrum, NetLSD, and HSIC variants
+        (Section~\ref{sec:sbm}). We characterize its extent: the radius weights
+        $p_{\mathrm{out}}$ by $(b{-}1)\times$ in a $b$-block model, so the blind
+        spot is sharp at $b = 2$, survives degree heterogeneity, and erodes
+        smoothly as communities multiply (Section~\ref{sec:realism}).
   \item We identify the mechanism and verify it twice. Adjacency eigenvalues
         \emph{entangle} the SBM parameters as $\lambda_{1,2} \approx
         \tfrac{n}{2}(p_{\mathrm{in}} \pm p_{\mathrm{out}})$, so distance-based
@@ -397,6 +403,77 @@ underpowered --- but whitening reaches saturation while the raw spectrum is
 still at chance (e.g.\ $n = 60, k = 40$: $0.94$ vs.\ $0.12$). (At $k = 20$ the
 benchmark's permutation null is itself unstable, type-I up to $0.13$; $k \ge 40$
 is calibrated.)
+
+\subsection{When does the blind spot exist? Realism and the block-count
+boundary}\label{sec:realism}
+
+Is the blind spot an artifact of the clean balanced two-block SBM? We vary two
+axes toward realistic connectomes: degree heterogeneity (per-node multipliers
+$\theta_i \sim \mathrm{LogNormal}(0, 0.5)$, a within-graph nuisance fresh per
+graph) and the number of communities $b$. Table~\ref{tab:realism} reports the
+$p_{\mathrm{out}}$-only blind-spot test ($n = 60$, $k = 40$, $R = 100$).
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Blind-spot test ($\rho = 1$ power) under realistic generators. The
+blind spot \emph{survives} degree heterogeneity but \emph{vanishes} with more
+communities --- the benchmark recovers full power at four blocks.}
+\label{tab:realism}
+\begin{tabular}{lcccc}
+\toprule
+generator & $\lambda_{\max}$ & spec5 & spec5\_white & vgae \\
+\midrule
+2-block            & 0.13 & 0.17 & 0.97 & 0.90 \\
+2-block + deg.het. & 0.17 & 0.31 & 0.92 & 0.81 \\
+4-block            & 0.98 & 0.96 & 0.98 & 0.97 \\
+4-block + deg.het. & 0.91 & 0.97 & 0.93 & 0.85 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This is the most important qualification of our claim, and the mechanism
+predicts it. In a balanced $b$-block SBM the mean degree is
+$(n/b)\,p_{\mathrm{in}} + n\,\tfrac{b-1}{b}\,p_{\mathrm{out}}$, so the spectral
+radius weights $p_{\mathrm{out}}$ by a factor $(b-1)$ relative to
+$p_{\mathrm{in}}$. The population correlation the benchmark can detect is the
+share of radius variance carried by the shared $p_{\mathrm{out}}$,
+\[
+\rho_{\mathrm{detect}} \;\approx\;
+\frac{(b-1)^2\,\sigma^2_{\mathrm{out}}}
+{(b-1)^2\,\sigma^2_{\mathrm{out}} + \sigma^2_{\mathrm{in}}},
+\]
+which \emph{rises smoothly} with $b$ rather than switching at a threshold. With
+our ranges ($\sigma_{\mathrm{in}} \propto 0.20$,
+$\sigma_{\mathrm{out}} \propto 0.08$) this gives $\rho_{\mathrm{detect}}
+\approx 0.14, 0.39, 0.59$ for $b = 2, 3, 4$ --- a weak signal at two blocks that
+strengthens quickly. The boundary trace (Table~\ref{tab:boundary}) confirms the
+shape: $\lambda_{\max}$ power $0.07 \to 0.70 \to 0.98$ for $b = 2, 3, 4$ at
+$n = 80$. The blind spot is thus sharp only at $b = 2$ and erodes by $b = 3$;
+degree heterogeneity, which adds nuisance but no $p_{\mathrm{out}}$ signal,
+leaves it intact ($0.17$ at $b = 2$) while the whitening and learned-summary
+rescues persist ($0.92$, $0.81$). The phenomenon is therefore real but
+\emph{bounded}: a property of two- and (weakly) three-community populations
+with $p_{\mathrm{out}}$-dominated dependence --- a regime that still covers
+coarse-parcellation and bipartition analyses common in neuroscience, but not
+SBMs in general.
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Block-count boundary ($\rho = 1$ power, $n = 80$, $k = 40$,
+$R = 100$). The benchmark's blind spot erodes smoothly as communities multiply;
+the whitened spectrum is unaffected.}
+\label{tab:boundary}
+\begin{tabular}{lcccccc}
+\toprule
+$b$ & 2 & 3 & 4 & 5 & 6 \\
+\midrule
+$\lambda_{\max}$  & 0.07 & 0.70 & 0.98 & 1.00 & 1.00 \\
+spec5\_white      & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Mechanism: entanglement vs.\ disentanglement}\label{sec:mechanism}
 

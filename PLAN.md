@@ -55,8 +55,16 @@ power (0.65 vs raw 0.90) for blind-spot power; Bonferroni min-p is the most robu
 
 ### Next steps, in priority order
 
-1. ~~Kill-or-confirm~~ ~~R=100 + combiner~~ **DONE.** Synthetic core is complete and written up.
-   Remaining blockers to a submission, in order:
+**Scope correction (D5/D5b, June 2026).** The realism check found the blind spot is NOT
+universal: it is sharp at 2 communities, survives degree heterogeneity, but erodes smoothly
+as communities multiply (benchmark power 0.07/0.70/0.98 for b=2/3/4), governed by the radius
+weighting p_out at (b-1)x p_in. This narrowed the headline claim but reviewer-proofs it — the
+obvious 4-block counterexample is now characterized, not missed. The paper is scoped to
+few-community, p_out-dominated populations (still covers coarse-parcellation / bipartition
+analyses in neuroscience). Lesson: do the realism check BEFORE believing a clean-toy result.
+
+1. ~~Kill-or-confirm~~ ~~R=100 + combiner~~ ~~realism/boundary~~ **DONE.** Synthetic core complete
+   and written up (6 tables, scoped claim, smooth-boundary mechanism). Remaining blockers:
 2. **Scale the headline result.** R=100 replicates (tight CIs on the 0.96-vs-0.24 claim),
    n in {60, 100, 200}, k in {20, 40, 80}, full rho grid, 3-block SBM, degree-corrected
    SBM. Verify vgae_sv type-I (was 0.08 at R=25 — must settle to ~0.05).
