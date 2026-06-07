@@ -26,6 +26,7 @@ fire). The VGAE itself is in the common library (`gvs.models.vgae`).
 | `e3_decoder_ablation.py` | decoder × decode-rule ablation (the over-clustering fix) |
 | `e4_scale.py` | n = 1000 at 5–10% sample fractions |
 | `e5_coarsening.py` | coarsening (aggregate real edges) vs decoding vs sampling |
+| `e6_learned_pooling.py` | learned DMoN partition vs post-hoc k-means coarsening |
 
 Run: `uv run python research/subsampling/experiments/<script>.py` → writes `results/<name>.json`.
 
@@ -52,17 +53,34 @@ Run: `uv run python research/subsampling/experiments/<script>.py` → writes `re
   ≫ random_coarsen on WS/SBM modularity, but ties on ER/BA (no communities).
   Bounded: coarsening over-clusters on sparse graphs and trades away degree-
   distribution fidelity (uniform sampling stays best on degree-W1).
+- **Learning the partition fixes both of those weaknesses** (E6 — the "M2" step).
+  A DMoN pooling head trained end-to-end on the VGAE latents (to maximize spectral
+  modularity) replaces the post-hoc k-means partition. Result vs k-means:
+  over-clustering removed (SBM clustering 0.21 vs 0.30, orig 0.15) and degree
+  fidelity ~halved everywhere (degree-W1 now 0.009–0.018, matching uniform
+  sampling's 0.012–0.017), while modularity is preserved. On **Watts–Strogatz the
+  learned coarsener is the best method overall** — clustering 0.500 (orig 0.493),
+  degree-W1 0.009 (beats uniform's 0.016), modularity 0.570 (closer than uniform's
+  0.637 overshoot). First broad case in this thread where a learned method
+  competes with or beats uniform node sampling.
+  *(Engineering note: plain MinCutPool collapsed to one cluster with zero gradient
+  — a symmetric saddle; DMoN's collapse-regularization term plus VGAE-latent
+  features instead of identity features were needed to train it.)*
 
 ## Open threads (actively explored)
 
 - [x] **Coarsening as an alternative to decoding** (E5): wins on structured graphs,
       fixes the WS case. The learned partition (vs random) matters where communities exist.
-- [ ] **Learned/soft pooling (true M2):** E5 uses post-hoc k-means on latents. A
-      DiffPool-style *soft* assignment trained end-to-end could fix coarsening's
-      over-clustering and degree distortion by optimizing the partition for structural
-      preservation rather than latent proximity.
-- [ ] **Edge-dependent decoding** for WS-style lattice transitivity (the independence
-      assumption given Z cannot produce it) — though E5's coarsening already addresses WS.
+- [x] **Learned/soft pooling — the true M2** (E6): DMoN pooling trained end-to-end on
+      the VGAE latents fixes k-means coarsening's over-clustering AND degree distortion;
+      best method overall on Watts–Strogatz. The learned approach now earns its keep.
+- [ ] **Why does uniform sampling still edge out on degree-W1 for ER/BA/SBM?** Learned
+      coarsening matches it within noise but not below — is the residual gap structural
+      (coarsening can't reproduce the degree tail) or fixable (degree-aware pooling loss)?
+- [ ] **Scale + real graphs:** does the learned coarsener's win hold at n≥1000 and on a
+      real connectome, where uniform sampling's hub-lottery variance grows?
+- [ ] **Decode vs coarsen unification:** a learned coarsener that also re-weights/decodes
+      supernode edges (hybrid), to recover degree-tail fidelity.
 - [ ] **The right invariant at small sample fractions:** density matching collapses
       mean degree and fragments the graph — preserve density `p`, or mean degree /
       degree shape? (The image-VAE analogy suggests degree preservation.)
